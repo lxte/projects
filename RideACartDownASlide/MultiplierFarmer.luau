@@ -1,5 +1,5 @@
 if (not game:IsLoaded()) then
-	task.wait(1.5);
+	task.wait(2.5);
 end
 
 -- Services
