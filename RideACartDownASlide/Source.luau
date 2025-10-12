@@ -261,6 +261,7 @@ end
 
 getgenv().FluentWindow = Window
 getgenv().Cleanup = Cleanup
+Window:SelectTab(1)
 
 LoopFunctions.AntiSpawn = function()
     PurchaseBullet:FireServer("Default", 0);
