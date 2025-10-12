@@ -1,5 +1,5 @@
 if (not game:IsLoaded()) then
-	task.wait(3);
+	task.wait(1.5);
 end
 
 -- Services
@@ -28,7 +28,7 @@ local SeatPart = (Humanoid.SeatPart);
 local Cart = SeatPart and SeatPart:FindFirstAncestorOfClass("Model");
 
 if (Cart) then
-  for _ = 1, 10 do
+  for _ = 1, 20 do
     task.wait(0.1);
     Cart:PivotTo(Coordinate);
 	Humanoid.RootPart.CFrame = Coordinate
@@ -36,5 +36,4 @@ if (Cart) then
 end
 
 queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/heads/main/RideACartDownASlide/MultiplierFarmer.luau"))()')
-task.wait(1.5);
 TeleportService:Teleport(game.PlaceId, LocalPlayer);
