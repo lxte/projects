@@ -33,4 +33,5 @@ if (Cart) then
   end
 end
 
+queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/heads/main/RideACartDownASlide/MultiplierFarmer.luau"))()')
 TeleportService:Teleport(game.PlaceId, LocalPlayer);
