@@ -19,9 +19,7 @@ local RootPart = Humanoid.RootPart
 -- Init
 Equip:InvokeServer("Default");
 
-repeat
-  task.wait();
-until Humanoid.Sit
+task.wait(2)
 
 local SeatPart = (Humanoid.SeatPart);
 local Cart = SeatPart and SeatPart:FindFirstAncestorOfClass("Model");
