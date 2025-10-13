@@ -120,7 +120,7 @@ end
 Tabs.Home:AddSection("Equip")
 Tabs.Home:AddDropdown("Dropdown", {
     Title = "Equip Cart",
-    Description = "Select a Cart you'd like to equip",
+    Description = "Select a Cart you'd like to equip (paid carts in robux most likely will not work!)",
     Values = (function()
         local Values = {}
 
@@ -136,6 +136,11 @@ Tabs.Home:AddDropdown("Dropdown", {
     Default = 1,
 }):OnChanged(function(Value)
     PurchaseCart:FireServer(Value, 0, 100);
+    Fluent:Notify({
+        Title = "Cart",
+        Content = ("Changed cart to %s"):format(Value),
+        Duration = 3
+    })
 end)
 
 Tabs.Home:AddDropdown("Dropdown", {
@@ -154,6 +159,11 @@ Tabs.Home:AddDropdown("Dropdown", {
     Default = 1,
 }):OnChanged(function(Value)
     PurchaseBullet:FireServer(Value, 0);
+    Fluent:Notify({
+        Title = "Bullet",
+        Content = ("Changed bullet to %s"):format(Value),
+        Duration = 1
+    })
 end)
 
 Tabs.Home:AddButton({
@@ -196,6 +206,11 @@ Tabs.Home:AddButton({
     Title = "Infinite Flips",
     Callback = function()
         LocalPlayer.Passes.CanFlip.Value = true
+        Fluent:Notify({
+            Title = "Infinite Flips",
+            Content = "Enabled",
+            Duration = 1
+        })
     end
 })
 
@@ -227,6 +242,14 @@ Tabs.Home:AddToggle("DistanceGrinding", {
 	    Cleanup.DistanceFarm = State
 
         if (State) then
+            if (Cleanup.AntiSpawn) then
+                Fluent:Notify({
+                    Title = "Warning",
+                    Content = "It is recommended to disable Anti Cart Spawn (while using Distance Farm)",
+                    Duration = 5
+                })
+            end
+
             LoopFunctions.DistanceFarm();
         end
     end 
@@ -240,6 +263,7 @@ Tabs.Home:AddButton({
     end
 })
 
+--> Settings
 InterfaceManager:SetLibrary(Fluent)
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 
@@ -331,9 +355,8 @@ local Old; Old = hookmetamethod(game, "__namecall", function(self, ...)
     return Old(self, ...);
 end);
 
-GuiService:SetGameplayPausedNotificationEnabled(false);
-CoreGui.PurchasePromptApp.Enabled = false
-
+GuiService:SetGameplayPausedNotificationEnabled(false); -- gets rid of the gameplay paused screen that's pretty annoying
+CoreGui.PurchasePromptApp.Enabled = false -- since this game likes to spam purchase prompts whenever you fire the shoot remote
 table.insert(Cleanup, RunService.RenderStepped:Connect(function()
     if (Cleanup.CartNoclip) then
         for _, Cart in next, (Carts:GetChildren()) do
