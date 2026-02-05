@@ -112,4 +112,4 @@ if (not game:IsLoaded()) then
     game.Loaded:Wait();
 end
 
-ScreenGui:Destroy()
+task.wait(0.5); ScreenGui:Destroy()
