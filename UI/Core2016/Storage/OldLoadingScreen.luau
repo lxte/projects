@@ -97,7 +97,6 @@ Spawn(function()
     OwnerLoadText.Text = `By { Players:GetNameFromUserIdAsync(game.CreatorId) }`
 end)
 
---// scrip
 Spawn(function()
     repeat task.wait(1)
         LoadingText.Text = "Loading."
