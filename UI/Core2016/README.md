@@ -20,4 +20,4 @@ getgenv().Config2016 = ({
 loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/heads/main/UI/Core2016/Source.luau"))()
 ```
 
-<img width="1920" height="996" alt="image" src="https://github.com/user-attachments/assets/4ef70478-4f40-4b08-b878-2a9e5396e06d" />
+<img width="1920" height="998" alt="image" src="https://github.com/user-attachments/assets/0c5c4248-bcd1-470d-b88b-7ac8418b9ab6" />
