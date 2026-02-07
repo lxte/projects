@@ -143,24 +143,24 @@ local CreateBackpack = function()
 end
 
 local FormatNumber = function(Value)
-    if (typeof(Value) == "number") then
-        Value = Floor(Value);
+	if (typeof(Value) == "number") then
+		Value = Floor(Value);
 
-        if (Value >= 1000000000000) then
-            return string.format("%.1fT+", Value / 1000000000000);
-        elseif (Value >= 1000000000) then
-            return string.format("%.1fB+", Value / 1000000000);
-        elseif (Value >= 1000000) then
-            return string.format("%.1fM+", Value / 1000000);
-        elseif (Value >= 1000) then
-            local Formatted = tostring(Value);
-            return Formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "");
-        else
-            return tostring(Value);
-        end
-    else
-        return Value
-    end
+		if (Value >= 1000000000000) then
+			return string.format("%.1fT+", Value / 1000000000000);
+		elseif (Value >= 1000000000) then
+			return string.format("%.1fB+", Value / 1000000000);
+		elseif (Value >= 1000000) then
+			return string.format("%.1fM+", Value / 1000000);
+		elseif (Value >= 1000) then
+			local Formatted = tostring(Value);
+			return Formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "");
+		else
+			return tostring(Value);
+		end
+	else
+		return Value
+	end
 end
 
 local AddIconSystem = function(Button, Size, Clicked: () -> ())
@@ -547,7 +547,7 @@ local AccountContainer = function(Parent)
 		UpdateAccountSize();
 		AccountInfo.Size = UDim2.new(0, TotalWidth, 0, 35);
 		AccountInfo.Position = UDim2.new(1, -TotalWidth, 0, 0);
-        StatHeaderLabels = ({});
+		StatHeaderLabels = ({});
 		StatValueLabels = ({});
 
 		local Stats = LocalPlayer:FindFirstChild("leaderstats");
@@ -629,9 +629,9 @@ local AccountContainer = function(Parent)
 	Connect(LocalPlayer.ChildAdded, function(Child)
 		if (Child.Name == "leaderstats") then
 			Wait(0.1); UpdateAccountStats();
-            Connect(Child.ChildAdded, function()
-                Wait(0.1); UpdateAccountStats();
-            end)
+			Connect(Child.ChildAdded, function()
+				Wait(0.1); UpdateAccountStats();
+			end)
 		end
 	end)
 
@@ -724,11 +724,11 @@ if (Configuration.OldBubbleChat) then
 end
 
 if (Configuration.OldPlayerList) then
-    -- Info
+	-- Info
 	local BuildersClub = ({ "rbxassetid://7038283888", "rbxassetid://7038284499", "rbxassetid://7038285281" });
-    local TeamFrames = ({});
+	local TeamFrames = ({});
 	local LeaderstatColumns = ({});
-    local PlayerUpdateFunctions = ({});
+	local PlayerUpdateFunctions = ({});
 	local TotalWidth = 170
 
 	local GetSize = function(X: number)
@@ -736,15 +736,15 @@ if (Configuration.OldPlayerList) then
 		return UDim2.new(0, X, 0, Clamp(Viewport.Y / 2.5, 250, 416))
 	end
 
-    -- Connections
-    Connect(RunService.RenderStepped, function()
+	-- Connections
+	Connect(RunService.RenderStepped, function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false);
 		pcall(function()
 			TopBarApp.UnibarLeftFrame.HealthBar.HealthBar.Visible = false
 		end)
 	end)
 
-    -- Objects
+	-- Objects
 	local PlayerListContainer = Create("Frame", {
 		Name = "PlayerListContainer",
 		BackgroundTransparency = 1,
@@ -792,7 +792,7 @@ if (Configuration.OldPlayerList) then
 		PlayerListContainer.Size = GetSize(TotalWidth);
 
 		for _, Data in next, TeamFrames do
-            local HeaderIgnorePaddingFrame = Data.Header:FindFirstChild("HeaderIgnorePaddingFrame");
+			local HeaderIgnorePaddingFrame = Data.Header:FindFirstChild("HeaderIgnorePaddingFrame");
 			Data.Header.Size = UDim2.new(0, TotalWidth, 0, 20);
 
 			if (HeaderIgnorePaddingFrame) then
@@ -808,7 +808,7 @@ if (Configuration.OldPlayerList) then
 	local CreateTeamFrame = function(Team)
 		local TeamKey = (Team or "Neutral");
 		local TeamStatLabels = ({});
-        local TeamFrameKey = TeamFrames[TeamKey]
+		local TeamFrameKey = TeamFrames[TeamKey]
 
 		if (TeamFrameKey) then
 			return (TeamFrameKey);
@@ -874,10 +874,10 @@ if (Configuration.OldPlayerList) then
 				Destroy(Label);
 			end
 
-            TeamStatLabels = ({});
+			TeamStatLabels = ({});
 			for Index, StatName in next, LeaderstatColumns do
 				local TotalValue = 0
-                local IntValue = true
+				local IntValue = true
 
 				for _, PlayerObject in next, PlayerContainer:GetChildren() do
 					if (PlayerObject:IsA("TextButton")) then
@@ -890,9 +890,9 @@ if (Configuration.OldPlayerList) then
 								local Stat = Stats:FindFirstChild(StatName);
 
 								if (Stat) then
-                                    if (Stat:IsA("NumberValue")) then
-                                        IntValue = false
-                                    end
+									if (Stat:IsA("NumberValue")) then
+										IntValue = false
+									end
 
 									TotalValue = TotalValue + (tonumber(Stat.Value) or 0);
 								end
@@ -920,41 +920,41 @@ if (Configuration.OldPlayerList) then
 
 		UpdateTeamStats();
 		TeamFrames[TeamKey] = ({ 
-            Frame = TeamFrame, 
-            Container = PlayerContainer, 
-            Header = TeamHeader, 
-            UpdateTeamStats = UpdateTeamStats
-        })
+			Frame = TeamFrame, 
+			Container = PlayerContainer, 
+			Header = TeamHeader, 
+			UpdateTeamStats = UpdateTeamStats
+		})
 
 		return TeamFrames[TeamKey]
 	end
 
-    local UpdatePlayerOrder = function(Player)
-        local TeamKey = (Player.Team or "Neutral");
-        local TeamData = TeamFrames[TeamKey]
-        
-        if (not TeamData) then
-            return
-        end
-        
-        for _, PlayerObject in next, TeamData.Container:GetChildren() do
-            if (PlayerObject:IsA("TextButton") and Players:FindFirstChild(PlayerObject.Name)) then
-                local TargetPlayer = Players:FindFirstChild(PlayerObject.Name);
-                local LayoutOrder = 0
-                
-                if (#LeaderstatColumns > 0) then
-                    local Stats = TargetPlayer:FindFirstChild("leaderstats");
-                    local FirstStat = Stats and Stats:FindFirstChild(LeaderstatColumns[1]);
-                    
-                    if (FirstStat and (FirstStat:IsA("IntValue") or FirstStat:IsA("NumberValue"))) then
-                        LayoutOrder = -tonumber(FirstStat.Value) or 0
-                    end
-                end
-                
-                PlayerObject.LayoutOrder = LayoutOrder
-            end
-        end
-    end
+	local UpdatePlayerOrder = function(Player)
+		local TeamKey = (Player.Team or "Neutral");
+		local TeamData = TeamFrames[TeamKey]
+
+		if (not TeamData) then
+			return
+		end
+
+		for _, PlayerObject in next, TeamData.Container:GetChildren() do
+			if (PlayerObject:IsA("TextButton") and Players:FindFirstChild(PlayerObject.Name)) then
+				local TargetPlayer = Players:FindFirstChild(PlayerObject.Name);
+				local LayoutOrder = 0
+
+				if (#LeaderstatColumns > 0) then
+					local Stats = TargetPlayer:FindFirstChild("leaderstats");
+					local FirstStat = Stats and Stats:FindFirstChild(LeaderstatColumns[1]);
+
+					if (FirstStat and (FirstStat:IsA("IntValue") or FirstStat:IsA("NumberValue"))) then
+						LayoutOrder = -tonumber(FirstStat.Value) or 0
+					end
+				end
+
+				PlayerObject.LayoutOrder = LayoutOrder
+			end
+		end
+	end
 
 	local AddPlayer = function(Player)
 		local Open = false
@@ -963,7 +963,7 @@ if (Configuration.OldPlayerList) then
 
 		local UpdatePlayerTeam = function()
 			local TeamKey = (Player.Team or "Neutral");
-            local TeamFrame = TeamFrames[CurrentTeamKey]
+			local TeamFrame = TeamFrames[CurrentTeamKey]
 
 			if (CurrentTeamKey == TeamKey) then
 				return
@@ -974,7 +974,7 @@ if (Configuration.OldPlayerList) then
 			end
 
 			CurrentTeamKey = TeamKey
-            
+
 			local TeamData = CreateTeamFrame(TeamKey)
 			PlayerObject.Parent = TeamData.Container
 
@@ -986,7 +986,7 @@ if (Configuration.OldPlayerList) then
 		local TeamKey = (Player.Team or "Neutral");
 		local TeamData = CreateTeamFrame(TeamKey)
 
-        CurrentTeamKey = TeamKey
+		CurrentTeamKey = TeamKey
 		PlayerObject = Create("TextButton", {
 			Parent = TeamData.Container,
 			Name = Player.Name,
@@ -1039,7 +1039,7 @@ if (Configuration.OldPlayerList) then
 				Destroy(Label);
 			end
 
-            StatLabels = ({});
+			StatLabels = ({});
 
 			local Stats = Player:FindFirstChild("leaderstats");
 
@@ -1049,55 +1049,55 @@ if (Configuration.OldPlayerList) then
 
 					if (Stat) then
 						local StatLabel = Create("TextLabel", {
-                            Parent = IgnorePaddingFrame,
-                            Name = StatName,
-                            BackgroundTransparency = 1,
-                            Position = UDim2.new(0, 170 + ((Index - 1) * 60) - 23, 0, 0),
-                            Size = UDim2.new(0, 60, 1, 0),
-                            TextSize = 14,
-                            Font = Enum.Font.SourceSans,
-                            TextXAlignment = Enum.TextXAlignment.Center,
-                            TextColor3 = Color3.fromRGB(255, 255, 255),
-                            Text = FormatNumber(Stat.Value),
-                        })
+							Parent = IgnorePaddingFrame,
+							Name = StatName,
+							BackgroundTransparency = 1,
+							Position = UDim2.new(0, 170 + ((Index - 1) * 60) - 23, 0, 0),
+							Size = UDim2.new(0, 60, 1, 0),
+							TextSize = 14,
+							Font = Enum.Font.SourceSans,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							TextColor3 = Color3.fromRGB(255, 255, 255),
+							Text = FormatNumber(Stat.Value),
+						})
 
 						Insert(StatLabels, StatLabel)
 						Connect(Stat.Changed, function(Value)
-                            StatLabel.Text = FormatNumber(Stat.Value);
-                            
-                            local TeamKey = (Player.Team or "Neutral");
-                            local TeamFrame = TeamFrames[TeamKey]
-                            
-                            if (TeamFrame and TeamFrame.UpdateTeamStats) then
-                                TeamFrame.UpdateTeamStats();
-                            end
-                            
-                            if (Index == 1) then
-                                UpdatePlayerOrder(Player);
-                            end
-                        end)
+							StatLabel.Text = FormatNumber(Stat.Value);
+
+							local TeamKey = (Player.Team or "Neutral");
+							local TeamFrame = TeamFrames[TeamKey]
+
+							if (TeamFrame and TeamFrame.UpdateTeamStats) then
+								TeamFrame.UpdateTeamStats();
+							end
+
+							if (Index == 1) then
+								UpdatePlayerOrder(Player);
+							end
+						end)
 					end
 				end
 			end
 
 			local TeamKey = (Player.Team or "Neutral");
-            local TeamFrame = TeamFrames[TeamKey]
-            
+			local TeamFrame = TeamFrames[TeamKey]
+
 			if (TeamFrame and TeamFrame.UpdateTeamStats) then
 				TeamFrame.UpdateTeamStats();
 			end
 
-            UpdatePlayerOrder(Player);
+			UpdatePlayerOrder(Player);
 		end
 
 		UpdateStats();
 		PlayerUpdateFunctions[Player] = UpdateStats
 
-        Connect(Player.ChildAdded, function(Child)
-            if (Child.Name == "leaderstats") then
-                Wait(0.1); UpdateStats()
-            end
-        end)
+		Connect(Player.ChildAdded, function(Child)
+			if (Child.Name == "leaderstats") then
+				Wait(0.1); UpdateStats()
+			end
+		end)
 
 		Connect(Player:GetPropertyChangedSignal("Team"), UpdatePlayerTeam)
 		Connect(PlayerObject.MouseButton1Click, function()
@@ -1198,7 +1198,7 @@ if (Configuration.OldPlayerList) then
 
 		Defer(function()
 			local TeamKey = (Player.Team or "Neutral");
-            local TeamFrame = TeamFrames[TeamKey]
+			local TeamFrame = TeamFrames[TeamKey]
 
 			if (TeamFrame and TeamFrame.UpdateTeamStats) then
 				TeamFrame.UpdateTeamStats();
@@ -1218,35 +1218,35 @@ if (Configuration.OldPlayerList) then
 		AddPlayer(Player);
 	end
 
-    -- Connections
+	-- Connections
 	Connect(Players.PlayerAdded, function(Player)
 		AddPlayer(Player);
 	end)
 
 	Connect(Players.PlayerRemoving, function(Player)
-        PlayerUpdateFunctions[Player] = nil
-        
-        for _, Data in next, TeamFrames do
-            for _, User in next, Data.Container:GetChildren() do
-                if (User.Name == Player.Name) then
-                    Destroy(User);
-                end
-            end
-        end
-    end)
+		PlayerUpdateFunctions[Player] = nil
+
+		for _, Data in next, TeamFrames do
+			for _, User in next, Data.Container:GetChildren() do
+				if (User.Name == Player.Name) then
+					Destroy(User);
+				end
+			end
+		end
+	end)
 
 	Connect(Teams.ChildAdded, function(Team)
-        CreateTeamFrame(Team);
-    end)
+		CreateTeamFrame(Team);
+	end)
 
 	Connect(Teams.ChildRemoved, function(Team)
-        local TeamFrame = TeamFrames[Team]
-        
-        if (TeamFrame) then
-            Destroy(TeamFrame.Frame);
-            TeamFrames[Team] = nil
-        end
-    end)
+		local TeamFrame = TeamFrames[Team]
+
+		if (TeamFrame) then
+			Destroy(TeamFrame.Frame);
+			TeamFrames[Team] = nil
+		end
+	end)
 
 	Connect(LocalPlayer.ChildAdded, function(Child)
 		if (Child.Name == "leaderstats") then
@@ -1264,23 +1264,23 @@ if (Configuration.OldPlayerList) then
 				Update();
 			end
 
-            Connect(Child.ChildAdded, function(Stat)
-                if (Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue")) then
-                    Wait(0.1); UpdateLeaderstats();
+			Connect(Child.ChildAdded, function(Stat)
+				if (Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue")) then
+					Wait(0.1); UpdateLeaderstats();
 
-                    for _, Data in next, TeamFrames do
-                        for _, PlayerObject in next, Data.Container:GetChildren() do
-                            if (PlayerObject:IsA("TextButton")) then
-                                PlayerObject.Size = UDim2.new(0, TotalWidth, 0, 24);
-                            end
-                        end
-                    end
+					for _, Data in next, TeamFrames do
+						for _, PlayerObject in next, Data.Container:GetChildren() do
+							if (PlayerObject:IsA("TextButton")) then
+								PlayerObject.Size = UDim2.new(0, TotalWidth, 0, 24);
+							end
+						end
+					end
 
-                    for Player, Update in next, PlayerUpdateFunctions do
-                        Update();
-                    end
-                end
-            end)
+					for Player, Update in next, PlayerUpdateFunctions do
+						Update();
+					end
+				end
+			end)
 		end
 	end)
 
