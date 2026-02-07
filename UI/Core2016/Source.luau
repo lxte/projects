@@ -2,7 +2,7 @@
 -- [!] inspired by spec / scot.wtf's Project2016
 
 if (not game:IsLoaded()) then
-    game.Loaded:Wait();
+	game.Loaded:Wait();
 end
 
 -- Services
@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService");
 local RunService = game:GetService("RunService");
 local StarterGui = game:GetService("StarterGui");
 local Players = game:GetService("Players");
+local Teams = game:GetService("Teams");
 
 -- Variables
 local RobloxGui = CoreGui:WaitForChild("RobloxGui");
@@ -30,20 +31,20 @@ local LocalPlayer = Players.LocalPlayer
 -- Global
 local Core2016 = getgenv().Core2016
 local Configuration = getgenv().Config2016 or ({
-    OldConsole = true,
-    OldGraphics = true,
-    OldPlayerList = true,
-    OldBubbleChat = true,
+	OldConsole = true,
+	OldGraphics = true,
+	OldPlayerList = true,
+	OldBubbleChat = true,
 
-    ReplaceAgeGroupMessage = true,
-    HideVoiceChatButton = false,
+	ReplaceAgeGroupMessage = true,
+	HideVoiceChatButton = false,
 })
 
 -- Luau
-local Spawn = task.spawn
+local Spawn, Wait, Defer = task.spawn, task.wait, task.defer
 local Byte, Sub, Format, Match, Find, Replace = string.byte, string.sub, string.format, string.match, string.find, string.gsub
-local Floor, Random = math.floor, math.random
-local Discover = table.find
+local Floor, Random, Clamp = math.floor, math.random, math.clamp
+local Discover, Insert = table.find, table.insert
 
 local Connect = (game.Loaded.Connect);
 local Clone = (game.Clone);
@@ -52,773 +53,1242 @@ local Changed = (game.GetPropertyChangedSignal);
 
 -- Functions
 local Create = function(Class: string, Properties: { [string]: any })
-    local Object = Instance.new(Class);
+	local Object = Instance.new(Class);
 
-    for Property, Value in next, (Properties or {}) do
-        Object[Property] = Value
-    end
+	for Property, Value in next, (Properties or {}) do
+		Object[Property] = Value
+	end
 
-    return Object
+	return Object
 end
 
 local ColorOffset = 0
 local GetPlayerColor = function(PlayerName)
-    local Value = 0
+	local Value = 0
 
-    for Index = 1, #PlayerName do
-        local NewValue = Byte(Sub(PlayerName, Index, Index));
-        local Reverse = (#PlayerName - Index + 1);
+	for Index = 1, #PlayerName do
+		local NewValue = Byte(Sub(PlayerName, Index, Index));
+		local Reverse = (#PlayerName - Index + 1);
 
-        if (#PlayerName % 2 == 1) then
-            Reverse -= 1
-        end
+		if (#PlayerName % 2 == 1) then
+			Reverse -= 1
+		end
 
-        if (Reverse % 4 >= 2) then
-            NewValue = -NewValue
-        end
+		if (Reverse % 4 >= 2) then
+			NewValue = -NewValue
+		end
 
-        Value += NewValue
-    end
+		Value += NewValue
+	end
 
-    local ChatColors = ({
-        Color3.new(253/255, 41/255, 67/255),
-        Color3.new(1/255, 162/255, 255/255),
-        Color3.new(2/255, 184/255, 87/255),
-        BrickColor.new("Bright violet").Color,
-        BrickColor.new("Bright orange").Color,
-        BrickColor.new("Bright yellow").Color,
-        BrickColor.new("Light reddish violet").Color,
-        BrickColor.new("Brick yellow").Color,
-    });
-    
-    local Color = ChatColors[((Value + ColorOffset) % #ChatColors) + 1]
-    return Format("#%02x%02x%02x", Floor(Color.R * 255), Floor(Color.G * 255), Floor(Color.B * 255));
+	local ChatColors = ({
+		Color3.new(253/255, 41/255, 67/255),
+		Color3.new(1/255, 162/255, 255/255),
+		Color3.new(2/255, 184/255, 87/255),
+		BrickColor.new("Bright violet").Color,
+		BrickColor.new("Bright orange").Color,
+		BrickColor.new("Bright yellow").Color,
+		BrickColor.new("Light reddish violet").Color,
+		BrickColor.new("Brick yellow").Color,
+	});
+
+	local Color = ChatColors[((Value + ColorOffset) % #ChatColors) + 1]
+	return Format("#%02x%02x%02x", Floor(Color.R * 255), Floor(Color.G * 255), Floor(Color.B * 255));
 end
 
 -- might just remove this function
 local UpdatePosition = function(Button, Position)
-    Button.Position = Position
-    Connect(Changed(Button, "Position"), function()
-        if (Button.Position ~= Position) then
-            Button.Position = Position
-        end
-    end)
+	Button.Position = Position
+	Connect(Changed(Button, "Position"), function()
+		if (Button.Position ~= Position) then
+			Button.Position = Position
+		end
+	end)
 end
 
 local GetImage = function(Type: "Backpack" | "Chat" | "Menu", Visible)
-    local Images = {
-        Backpack = {
-            ["true"] = "rbxasset://textures/ui/Backpack/Backpack_Down.png",
-            ["false"] = "rbxasset://textures/ui/Backpack/Backpack.png",
-        },
+	local Images = {
+		Backpack = {
+			["true"] = "rbxasset://textures/ui/Backpack/Backpack_Down.png",
+			["false"] = "rbxasset://textures/ui/Backpack/Backpack.png",
+		},
 
-        Chat = {
-            ["true"] = "rbxasset://textures/ui/Chat/ChatDown.png",
-            ["false"] = "rbxasset://textures/ui/Chat/Chat.png",
-        },
+		Chat = {
+			["true"] = "rbxasset://textures/ui/Chat/ChatDown.png",
+			["false"] = "rbxasset://textures/ui/Chat/Chat.png",
+		},
 
-        Menu = {
-            ["true"] = "rbxasset://textures/ui/Menu/HamburgerDown.png",
-            ["false"] = "rbxasset://textures/ui/Menu/Hamburger.png",
-        },
-    }
+		Menu = {
+			["true"] = "rbxasset://textures/ui/Menu/HamburgerDown.png",
+			["false"] = "rbxasset://textures/ui/Menu/Hamburger.png",
+		},
+	}
 
-    return Images[Type][tostring(Visible)]
+	return Images[Type][tostring(Visible)]
 end
 
 local CreateBackpack = function()
-    if (not Core2016) then
-        local DotButton = ChatHolder:WaitForChild("nine_dot");
-        local Button = Clone(DotButton);
+	if (not Core2016) then
+		local DotButton = ChatHolder:WaitForChild("nine_dot");
+		local Button = Clone(DotButton);
 
-        Button.Parent = ChatHolder
-        Button.Name = "_Backpack"
-        Button.Visible = true
-        
-        return Button
-    end
+		Button.Parent = ChatHolder
+		Button.Name = "_Backpack"
+		Button.Visible = true
 
-    return nil -- so my vscode stops yelling
+		return Button
+	end
+
+	return nil -- so my vscode stops yelling
+end
+
+local FormatNumber = function(Value)
+    Value = Floor(Value);
+
+	if (Value >= 1000000000000) then
+		return string.format("%.1fT+", Value / 1000000000000);
+	elseif (Value >= 1000000000) then
+		return string.format("%.1fB+", Value / 1000000000);
+	elseif (Value >= 1000000) then
+		return string.format("%.1fM+", Value / 1000000);
+	elseif (Value >= 1000) then
+		local Formatted = tostring(Value);
+		return Formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "");
+	else
+		return tostring(Value);
+	end
 end
 
 local AddIconSystem = function(Button, Size, Clicked: () -> ())
-    if (not Button) then
-        return function() end
-    end
+	if (not Button) then
+		return function() end
+	end
 
-    local IntegrationIconFrame = Button:FindFirstChild("IntegrationIconFrame", 0.5);
-    local RobloxMenu = Button:FindFirstChild("ScalingIcon");
-    local Highlighter = Button:FindFirstChild("Highlighter") or Button:FindFirstChild("StateOverlayRound");
-    local IntegrationIcon = RobloxMenu or IntegrationIconFrame:FindFirstChild("IntegrationIcon");
-    local Icon = nil
+	local IntegrationIconFrame = Button:FindFirstChild("IntegrationIconFrame", 0.5);
+	local RobloxMenu = Button:FindFirstChild("ScalingIcon");
+	local Highlighter = Button:FindFirstChild("Highlighter") or Button:FindFirstChild("StateOverlayRound");
+	local IntegrationIcon = RobloxMenu or IntegrationIconFrame:FindFirstChild("IntegrationIcon");
+	local Icon = nil
 
-    if (IntegrationIcon) then
-        local Previous = IntegrationIcon.Parent:FindFirstChild("ICON_IMAGE");
+	if (IntegrationIcon) then
+		local Previous = IntegrationIcon.Parent:FindFirstChild("ICON_IMAGE");
 
-        if (Previous) then
-            Icon = Previous
-        else
-            Icon = Create("ImageLabel", {
-                BackgroundTransparency = 1,
-                Size = Size or IntegrationIcon.Size,
-                Parent = IntegrationIcon.Parent,
-                Position = UDim2.fromScale(0.5, 0.5),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Name = "ICON_IMAGE",
-            })
+		if (Previous) then
+			Icon = Previous
+		else
+			Icon = Create("ImageLabel", {
+				BackgroundTransparency = 1,
+				Size = Size or IntegrationIcon.Size,
+				Parent = IntegrationIcon.Parent,
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Name = "ICON_IMAGE",
+			})
 
-            IntegrationIcon.Visible = false
-        end
-    end
+			IntegrationIcon.Visible = false
+		end
+	end
 
-    if (Clicked) then
-        Spawn(function()
-            Connect(Button:WaitForChild("IconHitArea_nine_dot").MouseButton1Click, Clicked);
-        end)
-    end
+	if (Clicked) then
+		Spawn(function()
+			Connect(Button:WaitForChild("IconHitArea_nine_dot").MouseButton1Click, Clicked);
+		end)
+	end
 
-    if (Highlighter) then
-        Highlighter.BackgroundTransparency = 1
-        Highlighter.Visible = false
-    end
+	if (Highlighter) then
+		Highlighter.BackgroundTransparency = 1
+		Highlighter.Visible = false
+	end
 
-    return function(ImageId: string)
-        if (Icon) then
-            Icon.Image = ImageId
-        else
-            warn("Can't set icon", debug.traceback());
-        end
-    end
+	return function(ImageId: string)
+		if (Icon) then
+			Icon.Image = ImageId
+		else
+			warn("Can't set icon", debug.traceback());
+		end
+	end
 end
 
 local UpdateChatCounter = function()
-    local Chat = ChatHolder:FindFirstChild("chat");
-    local Badges = Chat and Chat:FindFirstChild("5");
+	local Chat = ChatHolder:FindFirstChild("chat");
+	local Badges = Chat and Chat:FindFirstChild("5");
 
-    if (Badges) then
-        for _, Badge in next, Badges:GetChildren() do
-            if (Badge.Name == "Badge") then
-                Badge.BackgroundColor3 = Color3.fromRGB(254, 54, 54);
-                Badge.Position = UDim2.fromOffset(24, 4);
-                Badge.Text.TextColor3 = Color3.fromRGB(255, 255, 255);
-                Badge.Text.TextSize = 12
-            end
-        end
-    end
+	if (Badges) then
+		for _, Badge in next, Badges:GetChildren() do
+			if (Badge.Name == "Badge") then
+				Badge.BackgroundColor3 = Color3.fromRGB(254, 54, 54);
+				Badge.Position = UDim2.fromOffset(24, 4);
+				Badge.Text.TextColor3 = Color3.fromRGB(255, 255, 255);
+				Badge.Text.TextSize = 12
+			end
+		end
+	end
 end
 
 -- this is a function because sometimes chat gets disabled and enabled using setcoreguienabled which breaks
 local SetupChat = function()
-    -- Buttons
-    local Chat = ChatHolder:WaitForChild("chat", 2);
-    local Backpack = ChatHolder:FindFirstChild("_Backpack")
+	-- Buttons
+	local Chat = ChatHolder:WaitForChild("chat", 2);
+	local Backpack = ChatHolder:FindFirstChild("_Backpack")
 
-    -- Objects
-    local ChatDetection = ExperienceChatApp:WaitForChild("topBorder");
-    local ChatBackground = ExperienceChatApp:WaitForChild("chatInputBar"):WaitForChild("Background");
-    local ChatContainer = ChatBackground:WaitForChild("Container");
-    local TextContainer = ChatContainer:WaitForChild("TextContainer");
-    local TextBoxContainer = TextContainer:WaitForChild("TextBoxContainer", 1);
-    local Badges = Chat and Chat:FindFirstChild("5");
-    local ContainerPadding = TextContainer:WaitForChild("UIPadding");
+	-- Objects
+	local ChatDetection = ExperienceChatApp:WaitForChild("topBorder");
+	local ChatBackground = ExperienceChatApp:WaitForChild("chatInputBar"):WaitForChild("Background");
+	local ChatContainer = ChatBackground:WaitForChild("Container");
+	local TextContainer = ChatContainer:WaitForChild("TextContainer");
+	local TextBoxContainer = TextContainer:WaitForChild("TextBoxContainer", 1);
+	local Badges = Chat and Chat:FindFirstChild("5");
+	local ContainerPadding = TextContainer:WaitForChild("UIPadding");
 
-    -- Configuration
-    local ChatWindow = TextChatService:WaitForChild("ChatWindowConfiguration");
-    local ChatInput = TextChatService:WaitForChild("ChatInputBarConfiguration");
-    local ChatWindowMain = ExperienceChatApp:WaitForChild("chatWindow", 3);
+	-- Configuration
+	local ChatWindow = TextChatService:WaitForChild("ChatWindowConfiguration");
+	local ChatInput = TextChatService:WaitForChild("ChatInputBarConfiguration");
+	local ChatWindowMain = ExperienceChatApp:WaitForChild("chatWindow", 3);
 
-    -- Icon Systems
-    local ChatIconSystem = AddIconSystem(Chat, UDim2.fromOffset(28, 28));
+	-- Icon Systems
+	local ChatIconSystem = AddIconSystem(Chat, UDim2.fromOffset(28, 28));
 
-    -- Backpack
-    if (Backpack) then
-        Backpack.Position = UDim2.fromOffset(48, 0);
-    end
+	-- Backpack
+	if (Backpack) then
+		Backpack.Position = UDim2.fromOffset(48, 0);
+	end
 
-    -- Chat Redesign
-    ChatWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0);
-    ChatWindow.BackgroundTransparency = 0.6
-    ChatWindow.TextSize = 16
-    ChatWindow.TextStrokeTransparency = 0.6
-    ChatWindow.HeightScale = 0.85
-    ChatWindow.WidthScale = 1.1
-    ChatWindow.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal);
-    ChatInput.BackgroundColor3 = Color3.fromRGB(209, 216, 221);
-    ChatInput.BackgroundTransparency = 0.5
-    ChatInput.TextColor3 = Color3.fromRGB(25, 25, 25);
-    ChatInput.PlaceholderColor3 = Color3.fromRGB(36, 35, 34);
-    ChatInput.TextStrokeTransparency = 1
-    ChatInput.TextSize = 16
-    ChatInput.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal);
-    ExperienceChatApp.Position = UDim2.fromOffset(0, -20);
-    ExperienceChatApp.topBorder.Image = "rbxassetid://70944149509141"
-    ExperienceChatApp.bottomBorder.Image = "rbxassetid://70944149509141"
-    ChatBackground:WaitForChild("Corner").CornerRadius = UDim.new(0, 0);
-    ChatContainer:WaitForChild("SendButton").Visible = false
-    ExperienceChatApp:WaitForChild("bottomBorder").Size = UDim2.new(1, 0, 0, 4);
-    ChatBackground.Position = UDim2.fromOffset(-3, -3);
-    ChatBackground.Size = UDim2.new(1, 6, 0, 0);
-    ContainerPadding.PaddingTop = UDim.new(0, 5);
-    ContainerPadding.PaddingBottom = UDim.new(0, 5);
-    ChatBackground.Parent.LayoutOrder = 4
+	-- Chat Redesign
+	ChatWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0);
+	ChatWindow.BackgroundTransparency = 0.6
+	ChatWindow.TextSize = 16
+	ChatWindow.TextStrokeTransparency = 0.6
+	ChatWindow.HeightScale = 0.85
+	ChatWindow.WidthScale = 1.1
+	ChatWindow.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal);
+	ChatInput.BackgroundColor3 = Color3.fromRGB(209, 216, 221);
+	ChatInput.BackgroundTransparency = 0.5
+	ChatInput.TextColor3 = Color3.fromRGB(25, 25, 25);
+	ChatInput.PlaceholderColor3 = Color3.fromRGB(36, 35, 34);
+	ChatInput.TextStrokeTransparency = 1
+	ChatInput.TextSize = 16
+	ChatInput.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal);
+	ExperienceChatApp.Position = UDim2.fromOffset(0, -20);
+	ExperienceChatApp.topBorder.Image = "rbxassetid://70944149509141"
+	ExperienceChatApp.bottomBorder.Image = "rbxassetid://70944149509141"
+	ChatBackground:WaitForChild("Corner").CornerRadius = UDim.new(0, 0);
+	ChatContainer:WaitForChild("SendButton").Visible = false
+	ExperienceChatApp:WaitForChild("bottomBorder").Size = UDim2.new(1, 0, 0, 4);
+	ChatBackground.Position = UDim2.fromOffset(-3, -3);
+	ChatBackground.Size = UDim2.new(1, 6, 0, 0);
+	ContainerPadding.PaddingTop = UDim.new(0, 5);
+	ContainerPadding.PaddingBottom = UDim.new(0, 5);
+	ChatBackground.Parent.LayoutOrder = 4
 
-    if (TextBoxContainer) then
-        TextBoxContainer.Position = UDim2.fromScale(1, 0);
-        TextBoxContainer.Size = UDim2.new(1, -8, 0, 0);
-        TextBoxContainer:WaitForChild("TextBox").Position = UDim2.fromOffset(-10, 0)
-    end
+	if (TextBoxContainer) then
+		TextBoxContainer.Position = UDim2.fromScale(1, 0);
+		TextBoxContainer.Size = UDim2.new(1, -8, 0, 0);
+		TextBoxContainer:WaitForChild("TextBox").Position = UDim2.fromOffset(-10, 0)
+	end
 
-    if (not ExperienceChatApp:FindFirstChild("Seperator")) then
-        Create("Frame", {
-            Name = "Seperator",
-            Parent = ExperienceChatApp,
-            BackgroundTransparency = 1,
-            Size = UDim2.fromOffset(10, 1),
-            LayoutOrder = 3,
-        })
-    end
+	if (not ExperienceChatApp:FindFirstChild("Seperator")) then
+		Create("Frame", {
+			Name = "Seperator",
+			Parent = ExperienceChatApp,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(10, 1),
+			LayoutOrder = 3,
+		})
+	end
 
-    if (ChatWindowMain) then
-        Spawn(function()
-            local DotMenu = ChatWindowMain:WaitForChild("TopBanner", 10000):WaitForChild("DotMenu", 10000)
-            DotMenu.Visible = false
-            Connect(Changed(DotMenu, "Visible"), function()
-                DotMenu.Visible = false
-            end)
-        end)
+	if (ChatWindowMain) then
+		Spawn(function()
+			local DotMenu = ChatWindowMain:WaitForChild("TopBanner", 10000):WaitForChild("DotMenu", 10000)
+			DotMenu.Visible = false
+			Connect(Changed(DotMenu, "Visible"), function()
+				DotMenu.Visible = false
+			end)
+		end)
 
-        -- update the chat player format (Player1: Message -> [Player1]: Message)
-        local BottomLockedScrollView = ChatWindowMain:WaitForChild("scrollingView"):WaitForChild("bottomLockedScrollView");
-        local ScrollView = BottomLockedScrollView:WaitForChild("RCTScrollView");
-        local Chats = ScrollView:WaitForChild("RCTScrollContentView");
-        local Padding = BottomLockedScrollView:WaitForChild("padding", 1);
+		-- update the chat player format (Player1: Message -> [Player1]: Message)
+		local BottomLockedScrollView = ChatWindowMain:WaitForChild("scrollingView"):WaitForChild("bottomLockedScrollView");
+		local ScrollView = BottomLockedScrollView:WaitForChild("RCTScrollView");
+		local Chats = ScrollView:WaitForChild("RCTScrollContentView");
+		local Padding = BottomLockedScrollView:WaitForChild("padding", 1);
 
-        local UpdateChatMessage = function(Message)
-            local TextMessage = Message and Message:FindFirstChild("TextMessage");
+		local UpdateChatMessage = function(Message)
+			local TextMessage = Message and Message:FindFirstChild("TextMessage");
 
-            if (TextMessage) then
-                local BodyText = TextMessage:FindFirstChild("BodyText");
-                local PrefixText = TextMessage:FindFirstChild("PrefixText");
-                local UserId = tonumber(Match(Message.Name, "^(%d+)-"));
-                local Player = UserId and Players:GetPlayerByUserId(UserId);
-                
-                if (UserId and Player) then
-                    local AgeGroupDifference = Find(BodyText.Text, "🔒 :")
-                    local Prefix = (`<font color="{GetPlayerColor(Player.Name)}">[{Player.Name}]:</font>`);
-                    local ToReplace = (AgeGroupDifference and "🔒 :") or `{Player.DisplayName}:`
-                    local Body = Replace(BodyText.Text, ToReplace, `[{Player.Name}]:`);
+			if (TextMessage) then
+				local BodyText = TextMessage:FindFirstChild("BodyText");
+				local PrefixText = TextMessage:FindFirstChild("PrefixText");
+				local UserId = tonumber(Match(Message.Name, "^(%d+)-"));
+				local Player = UserId and Players:GetPlayerByUserId(UserId);
 
-                    PrefixText.Text = Prefix
-                    BodyText.Text = Body
+				if (UserId and Player) then
+					local AgeGroupDifference = Find(BodyText.Text, "🔒 :")
+					local Prefix = (`<font color="{GetPlayerColor(Player.Name)}">[{Player.Name}]:</font>`);
+					local ToReplace = (AgeGroupDifference and "🔒 :") or `{Player.DisplayName}:`
+					local Body = Replace(BodyText.Text, ToReplace, `[{Player.Name}]:`);
 
-                    Connect(Changed(PrefixText, "Text"), function()
-                        PrefixText.Text = Prefix
-                    end)
+					PrefixText.Text = Prefix
+					BodyText.Text = Body
 
-                    Connect(Changed(BodyText, "Text"), function()
-                        BodyText.Text = Body
-                    end)
+					Connect(Changed(PrefixText, "Text"), function()
+						PrefixText.Text = Prefix
+					end)
 
-                    if (AgeGroupDifference) then
-                        BodyText.TextColor3 = Color3.fromRGB(250, 255, 158);
-                    end
-                elseif (UserId == 0 and BodyText and Find(BodyText.Text, "Only people in similar age groups can chat with you") and Configuration.ReplaceAgeGroupMessage) then
-                    BodyText.Text = "Chat '/?' or '/help' for a list of chat commands."
+					Connect(Changed(BodyText, "Text"), function()
+						BodyText.Text = Body
+					end)
 
-                    Connect(Changed(BodyText, "Text"), function()
-                        BodyText.Text = "Chat '/?' or '/help' for a list of chat commands."
-                    end)
-                end
-            end
-        end
+					if (AgeGroupDifference) then
+						BodyText.TextColor3 = Color3.fromRGB(250, 255, 158);
+					end
+				elseif (UserId == 0 and BodyText and Find(BodyText.Text, "Only people in similar age groups can chat with you") and Configuration.ReplaceAgeGroupMessage) then
+					BodyText.Text = "Chat '/?' or '/help' for a list of chat commands."
 
-        Connect(Chats.ChildAdded, UpdateChatMessage);
-        for _, ChatObject in next, Chats:GetChildren() do
-            UpdateChatMessage(ChatObject);
-        end
+					Connect(Changed(BodyText, "Text"), function()
+						BodyText.Text = "Chat '/?' or '/help' for a list of chat commands."
+					end)
+				end
+			end
+		end
 
-        if (Padding) then
-            Padding.PaddingBottom = UDim.new(0, 4);
-            Padding.PaddingTop = UDim.new(0, -4);
-        end
+		Connect(Chats.ChildAdded, UpdateChatMessage);
+		for _, ChatObject in next, Chats:GetChildren() do
+			UpdateChatMessage(ChatObject);
+		end
 
-        if (ScrollView) then
-            ScrollView.ScrollBarThickness = 1
-        end
-    end
+		if (Padding) then
+			Padding.PaddingBottom = UDim.new(0, 4);
+			Padding.PaddingTop = UDim.new(0, -4);
+		end
 
-    if (Chat) then
-        UpdatePosition(Chat, UDim2.fromOffset(4, 0));
-    end
-    
-    -- Connections
-    if (Badges) then
-        UpdateChatCounter();
-        Connect(Badges.ChildAdded, UpdateChatCounter);
-        Connect(Badges.ChildRemoved, UpdateChatCounter);
-    end
+		if (ScrollView) then
+			ScrollView.ScrollBarThickness = 1
+		end
+	end
 
-    ChatIconSystem(GetImage("Chat", ChatDetection.Visible));
-    Connect(Changed(ChatDetection, "Visible"), function()
-        ChatIconSystem(GetImage("Chat", ChatDetection.Visible));
-    end)
+	if (Chat) then
+		UpdatePosition(Chat, UDim2.fromOffset(4, 0));
+	end
+
+	-- Connections
+	if (Badges) then
+		UpdateChatCounter();
+		Connect(Badges.ChildAdded, UpdateChatCounter);
+		Connect(Badges.ChildRemoved, UpdateChatCounter);
+	end
+
+	ChatIconSystem(GetImage("Chat", ChatDetection.Visible));
+	Connect(Changed(ChatDetection, "Visible"), function()
+		ChatIconSystem(GetImage("Chat", ChatDetection.Visible));
+	end)
 end
 
 -- this the main function that redesigns the coregui
 local Redesign = function()
-    -- Buttons
-    local Remove = ChatHolder:WaitForChild("nine_dot");
-    local BackpackButton = ChatHolder:FindFirstChild("_Backpack") or CreateBackpack();
-    local Chat = ChatHolder:WaitForChild("chat", 2);
+	-- Buttons
+	local Remove = ChatHolder:WaitForChild("nine_dot");
+	local BackpackButton = ChatHolder:FindFirstChild("_Backpack") or CreateBackpack();
+	local Chat = ChatHolder:WaitForChild("chat", 2);
 
-    -- Other
-    local Inventory = RobloxGui:WaitForChild("Backpack"):WaitForChild("Inventory");
-    local Menu = RobloxGui:WaitForChild("SettingsClippingShield"):WaitForChild("SettingsShield");
+	-- Other
+	local Inventory = RobloxGui:WaitForChild("Backpack"):WaitForChild("Inventory");
+	local Menu = RobloxGui:WaitForChild("SettingsClippingShield"):WaitForChild("SettingsShield");
 
-    -- Icon Systems
-    local RobloxIconSystem = AddIconSystem(RobloxMenu, UDim2.fromOffset(30, 24));
-    local BackpackIconSystem = AddIconSystem(BackpackButton, UDim2.fromOffset(24, 30), function()
-        task.wait(0.001); keypress(0xC0); keyrelease(0xC0);
-    end);
+	-- Icon Systems
+	local RobloxIconSystem = AddIconSystem(RobloxMenu, UDim2.fromOffset(30, 24));
+	local BackpackIconSystem = AddIconSystem(BackpackButton, UDim2.fromOffset(24, 30), function()
+		Wait(0.001); keypress(0xC0); keyrelease(0xC0);
+	end);
 
-    -- Background
-    ChatHolder.Parent:WaitForChild("2").BackgroundTransparency = 1
-    RobloxMenu.BackgroundTransparency = 1
+	-- Background
+	ChatHolder.Parent:WaitForChild("2").BackgroundTransparency = 1
+	RobloxMenu.BackgroundTransparency = 1
 
-    -- Hide dots
-    Remove.Visible = false
+	-- Hide dots
+	Remove.Visible = false
 
-    -- Positions
-    UnibarMenu.Parent.Position = UDim2.new(1, -40, 0, -6);
-    MenuIconHolder.Position = UDim2.new(0, 2, 0, -6);
+	-- Positions
+	UnibarMenu.Parent.Position = UDim2.new(1, -40, 0, -6);
+	MenuIconHolder.Position = UDim2.new(0, 2, 0, -6);
 
-    -- Chat
-    if (Chat) then
-        SetupChat();
-    else
-        BackpackButton.Position = UDim2.fromOffset(4, 0);
-    end
+	-- Chat
+	if (Chat) then
+		SetupChat();
+	else
+		BackpackButton.Position = UDim2.fromOffset(4, 0);
+	end
 
-    -- Connections
-    Connect(Changed(RobloxMenu, "BackgroundTransparency"), function()
-        RobloxMenu.BackgroundTransparency = 1
-    end)
+	-- Connections
+	Connect(Changed(RobloxMenu, "BackgroundTransparency"), function()
+		RobloxMenu.BackgroundTransparency = 1
+	end)
 
-    Connect(ExperienceChatApp.ChildAdded, function(Object)
-        if (Object.Name == "chatWindow") then
-            SetupChat();
-        end
-    end)
+	Connect(ExperienceChatApp.ChildAdded, function(Object)
+		if (Object.Name == "chatWindow") then
+			SetupChat();
+		end
+	end)
 
-    Connect(ChatHolder.ChildRemoved, function(Object)
-        if (Object.Name == "chat") then
-            BackpackButton.Position = UDim2.fromOffset(4, 0);
-        end
-    end)
+	Connect(ChatHolder.ChildRemoved, function(Object)
+		if (Object.Name == "chat") then
+			BackpackButton.Position = UDim2.fromOffset(4, 0);
+		end
+	end)
 
-    Connect(Changed(Inventory, "Visible"), function()
-        BackpackIconSystem(GetImage("Backpack", Inventory.Visible));
-    end)
+	Connect(Changed(Inventory, "Visible"), function()
+		BackpackIconSystem(GetImage("Backpack", Inventory.Visible));
+	end)
 
-    Connect(Changed(Menu, "Visible"), function()
-        RobloxIconSystem(GetImage("Menu", Menu.Visible));
-    end)
+	Connect(Changed(Menu, "Visible"), function()
+		RobloxIconSystem(GetImage("Menu", Menu.Visible));
+	end)
 
-    Connect(CoreGui.ChildAdded, function(Object)
-        if (Object.Name == "TooltipLayer" and Object:IsA("ScreenGui")) then
-            Object.Enabled = false
-        end
-    end)
+	Connect(CoreGui.ChildAdded, function(Object)
+		if (Object.Name == "TooltipLayer" and Object:IsA("ScreenGui")) then
+			Object.Enabled = false
+		end
+	end)
 
-    -- Icons
-    RobloxIconSystem(GetImage("Menu", Menu.Visible));
-    BackpackIconSystem(GetImage("Backpack", Inventory.Visible));
+	-- Icons
+	RobloxIconSystem(GetImage("Menu", Menu.Visible));
+	BackpackIconSystem(GetImage("Backpack", Inventory.Visible));
 end
 
 -- creates the top right info (account name, account age, health)
 local AccountContainer = function(Parent)
-    local AccountInfo = Create("ImageButton", {
-        Position = UDim2.new(1, -170, 0, 0),
-        Size = UDim2.new(0, 170, 0, 35),
-        Parent = Parent,
-        BackgroundTransparency = 1,
-    })
+	local LeaderstatColumns = {}
+	local TotalWidth = 170
 
-    local HealthContainer = Create("Frame", {
-        BackgroundColor3 =  Color3.fromRGB(228, 236, 246),
-        Position = UDim2.new(0, 7, 1, -7),
-        Size = UDim2.new(1, -14, 0, 3),
-        Parent = AccountInfo,
-        BorderSizePixel = 0,
-    })
+	local UpdateAccountSize = function()
+		LeaderstatColumns = {}
+		local Stats = LocalPlayer:FindFirstChild("leaderstats")
 
-    local HealthFill = Create("Frame", {
-        BackgroundColor3 = Color3.fromRGB(27, 252, 107),
-        Size = UDim2.fromScale(1, 1),
-        Parent = HealthContainer,
-        BorderSizePixel = 0,
-    })
+		if (Stats) then
+			for _, Stat in next, Stats:GetChildren() do
+				if (Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue")) then
+					Insert(LeaderstatColumns, Stat.Name)
+				end
+			end
+		end
 
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 7, 0, 0),
-        Size = UDim2.new(1, -14, 0, 18),
-        Parent = AccountInfo,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Text = LocalPlayer.Name,
-        FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
-    })
+		TotalWidth = 170 + (#LeaderstatColumns * 60)
+	end
 
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 7, 0, 15),
-        Size = UDim2.new(1, -14, 0, 9),
-        Parent = AccountInfo,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Text = "Account: <13",
-        FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-    })
+	UpdateAccountSize()
 
-    local UpdateHealthGui = function(Health: number, MaxHealth: number)
-        HealthFill.Size = UDim2.fromScale(Health / 100, 1);
+	local AccountInfo = Create("ImageButton", {
+		Position = UDim2.new(1, -TotalWidth, 0, 0),
+		Size = UDim2.new(0, TotalWidth, 0, 35),
+		Parent = Parent,
+		BackgroundTransparency = 1,
+	})
 
-        if (Health < MaxHealth) and (Health > MaxHealth / 2) then
-            HealthFill.BackgroundColor3 = Color3.new(1 - (Health / MaxHealth) + 0.5, 1, 0)
-        else
-            HealthFill.BackgroundColor3 = Color3.fromRGB(27, 252, 107)
-        end
+	local HealthContainer = Create("Frame", {
+		BackgroundColor3 =  Color3.fromRGB(228, 236, 246),
+		Position = UDim2.new(0, 7, 1, -7),
+		Size = UDim2.new(0, 156, 0, 3),
+		Parent = AccountInfo,
+		BorderSizePixel = 0,
+	})
 
-        if (Health == MaxHealth / 2) then
-            HealthFill.BackgroundColor3 = Color3.new(1, 1, 0)
-        end
+	local HealthFill = Create("Frame", {
+		BackgroundColor3 = Color3.fromRGB(27, 252, 107),
+		Size = UDim2.fromScale(1, 1),
+		Parent = HealthContainer,
+		BorderSizePixel = 0,
+	})
 
-        if (Health < MaxHealth / 2) then
-            HealthFill.BackgroundColor3 = Color3.new(1, (Health/MaxHealth) * 2, 0)
-        end 
-    end
+	local IgnorePaddingFrame = Create("Frame", {
+		Parent = AccountInfo,
+		Name = "IgnorePaddingFrame",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+	})
 
-    local UpdateHealth = function()
-        local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait();
-        local Humanoid = Character:WaitForChild("Humanoid");
+	Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 7, 0, 0),
+		Size = UDim2.new(0, 156, 0, 18),
+		Parent = AccountInfo,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Text = LocalPlayer.Name,
+		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
+	})
 
-        if (Humanoid) then
-            UpdateHealthGui(Humanoid.Health, Humanoid.MaxHealth);
-            Connect(Changed(Humanoid, "Health"), function()
-                UpdateHealthGui(Humanoid.Health, Humanoid.MaxHealth);
+	Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 7, 0, 13),
+		Size = UDim2.new(0, 156, 0, 12),
+		Parent = AccountInfo,
+		TextSize = 11,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Text = "Account: <13",
+		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+	})
+
+	local StatHeaderLabels = {}
+	local StatValueLabels = {}
+
+	local UpdateAccountStats = function()
+		for _, Label in next, StatHeaderLabels do
+			Destroy(Label);
+		end
+
+		for _, Label in next, StatValueLabels do
+			Destroy(Label);
+		end
+
+		UpdateAccountSize();
+		AccountInfo.Size = UDim2.new(0, TotalWidth, 0, 35);
+		AccountInfo.Position = UDim2.new(1, -TotalWidth, 0, 0);
+        StatHeaderLabels = ({});
+		StatValueLabels = ({});
+
+		local Stats = LocalPlayer:FindFirstChild("leaderstats");
+
+		if (Stats) then
+			for Index, StatName in next, LeaderstatColumns do
+				local Stat = Stats:FindFirstChild(StatName);
+
+				if (Stat) then
+					local StatHeaderLabel = Create("TextLabel", {
+						BackgroundTransparency = 1,
+						Position = UDim2.new(0, 170 + ((Index - 1) * 60), 0, 1),
+						Size = UDim2.new(0, 60, 0, 18),
+						Parent = IgnorePaddingFrame,
+						TextSize = 13,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						Text = StatName,
+						FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+					})
+
+					local StatValueLabel = Create("TextLabel", {
+						BackgroundTransparency = 1,
+						Position = UDim2.new(0, 170 + ((Index - 1) * 60), 0, 17),
+						Size = UDim2.new(0, 60, 0, 12),
+						Parent = IgnorePaddingFrame,
+						TextSize = 14,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						Text = FormatNumber(Stat.Value),
+						FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
+					})
+
+					Insert(StatHeaderLabels, StatHeaderLabel);
+					Insert(StatValueLabels, StatValueLabel);
+					Connect(Stat.Changed, function(Value)
+						StatValueLabel.Text = FormatNumber(Value);
+					end)
+				end
+			end
+		end
+	end
+
+	local UpdateHealthGui = function(Health: number, MaxHealth: number)
+		HealthFill.Size = UDim2.fromScale(Health / MaxHealth, 1);
+
+		if (Health < MaxHealth) and (Health > MaxHealth / 2) then
+			HealthFill.BackgroundColor3 = Color3.new(1 - (Health / MaxHealth) + 0.5, 1, 0);
+		else
+			HealthFill.BackgroundColor3 = Color3.fromRGB(27, 252, 107);
+		end
+
+		if (Health == MaxHealth / 2) then
+			HealthFill.BackgroundColor3 = Color3.new(1, 1, 0);
+		end
+
+		if (Health < MaxHealth / 2) then
+			HealthFill.BackgroundColor3 = Color3.new(1, (Health/MaxHealth) * 2, 0);
+		end 
+	end
+
+	local UpdateHealth = function()
+		local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait();
+		local Humanoid = Character:WaitForChild("Humanoid");
+
+		if (Humanoid) then
+			UpdateHealthGui(Humanoid.Health, Humanoid.MaxHealth);
+			Connect(Changed(Humanoid, "Health"), function()
+				UpdateHealthGui(Humanoid.Health, Humanoid.MaxHealth);
+			end)
+		end
+	end
+
+	Spawn(function()
+		UpdateHealth();
+		Connect(LocalPlayer.CharacterAdded, UpdateHealth);
+	end)
+
+	Connect(LocalPlayer.ChildAdded, function(Child)
+		if (Child.Name == "leaderstats") then
+			Wait(0.1); UpdateAccountStats();
+            Connect(Child.ChildAdded, function()
+                Wait(0.1); UpdateAccountStats();
             end)
-        end
-    end
+		end
+	end)
 
-    Spawn(function()
-        UpdateHealth();
-        Connect(LocalPlayer.CharacterAdded, UpdateHealth);
-    end)
+	UpdateAccountStats();
 
-    return AccountInfo
+	return AccountInfo
 end
 
 -- Setup
 local TopbarBackground, AccountInfo
 
 if (not Core2016) then
-    local CustomScreenGui = Create("ScreenGui", {
-        Name = "RobloxGui",
-        Parent = CoreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        IgnoreGuiInset = true,
-    })
+	local CustomScreenGui = Create("ScreenGui", {
+		Name = "RobloxGui",
+		Parent = CoreGui,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		IgnoreGuiInset = true,
+	})
 
-    TopbarBackground = Create("Frame", {
-        Parent = CustomScreenGui,
-        Size = UDim2.new(1, 0, 0, 35),
-        BackgroundTransparency = 0.5,
-        BackgroundColor3 = Color3.fromRGB(31, 31, 31),
-    })
+	TopbarBackground = Create("Frame", {
+		Parent = CustomScreenGui,
+		Size = UDim2.new(1, 0, 0, 35),
+		BackgroundTransparency = 0.5,
+		BackgroundColor3 = Color3.fromRGB(31, 31, 31),
+	})
 
-    AccountInfo = AccountContainer(TopbarBackground);
+	AccountInfo = AccountContainer(TopbarBackground);
 end
 
 getgenv().Core2016 = true
 Spawn(Redesign);
 
 if (Configuration.OldGraphics) then
-    Lighting.GlobalShadows = false
-    
-    for _, Object in next, Lighting:GetChildren() do
-        if (Discover({ "DepthOfFieldEffect", "SunRaysEffect", "BloomEffect", "BlurEffect", "ColorCorrectionEffect", "Atmosphere" }, Object.ClassName)) then
-            Destroy(Object);
-        end
-    end
+	Lighting.GlobalShadows = false
 
-    Create("ColorCorrectionEffect", {
-        Parent = Lighting,
-        Saturation = 0,
-        Contrast = -0.1,
-    })
+	for _, Object in next, Lighting:GetChildren() do
+		if (Discover({ "DepthOfFieldEffect", "SunRaysEffect", "BloomEffect", "BlurEffect", "ColorCorrectionEffect", "Atmosphere" }, Object.ClassName)) then
+			Destroy(Object);
+		end
+	end
 
-    if (sethiddenproperty) then
-        sethiddenproperty(Lighting, "Technology", Enum.Technology.Compatibility);
-    end
+	Create("ColorCorrectionEffect", {
+		Parent = Lighting,
+		Saturation = 0,
+		Contrast = -0.1,
+	})
+
+	if (sethiddenproperty) then
+		sethiddenproperty(Lighting, "Technology", Enum.Technology.Compatibility);
+	end
 end
 
 if (Configuration.HideVoiceChatButton) then
-    Spawn(function()
-        ChatHolder:WaitForChild("toggle_mic_mute", 1000).Visible = false
-    end)
+	Spawn(function()
+		ChatHolder:WaitForChild("toggle_mic_mute", 1000).Visible = false
+	end)
 end
 
 if (Configuration.OldConsole) then
-   loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/heads/main/UI/OldConsole/Source.luau"))();
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/heads/main/UI/OldConsole/Source.luau"))();
 end
 
 if (Configuration.OldBubbleChat) then
-    local BubbleChat = TextChatService:WaitForChild("BubbleChatConfiguration");
-    
-    BubbleChat.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
-    BubbleChat.TextSize = 23
-    BubbleChat.BackgroundTransparency = 0
-    BubbleChat.TextColor3 = Color3.fromRGB(27, 42, 53);
-    BubbleChat.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+	local BubbleChat = TextChatService:WaitForChild("BubbleChatConfiguration");
 
-    Spawn(function()
-        local CornerRadius, UIPadding = BubbleChat:FindFirstChild("UICorner") or Create("UICorner", {
-            Parent = BubbleChat,
-            CornerRadius = UDim.new(0, 4),
-        }), BubbleChat:FindFirstChild("UIPadding") or Create("UIPadding", {
-            Parent = BubbleChat,
-        });
+	BubbleChat.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+	BubbleChat.TextSize = 23
+	BubbleChat.BackgroundTransparency = 0
+	BubbleChat.TextColor3 = Color3.fromRGB(27, 42, 53);
+	BubbleChat.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
 
-        if (CornerRadius) then
-            CornerRadius.CornerRadius = UDim.new(0, 5);
-        end
+	Spawn(function()
+		local CornerRadius, UIPadding = BubbleChat:FindFirstChild("UICorner") or Create("UICorner", {
+			Parent = BubbleChat,
+			CornerRadius = UDim.new(0, 4),
+		}), BubbleChat:FindFirstChild("UIPadding") or Create("UIPadding", {
+			Parent = BubbleChat,
+		});
 
-        if (UIPadding) then
-            for _, Property in next, ({ "PaddingTop", "PaddingBottom", "PaddingRight", "PaddingLeft" }) do
-                UIPadding[Property] = UDim.new(0, 6);
-            end
-        end
-    end)
+		if (CornerRadius) then
+			CornerRadius.CornerRadius = UDim.new(0, 5);
+		end
+
+		if (UIPadding) then
+			for _, Property in next, ({ "PaddingTop", "PaddingBottom", "PaddingRight", "PaddingLeft" }) do
+				UIPadding[Property] = UDim.new(0, 6);
+			end
+		end
+	end)
 end
 
 if (Configuration.OldPlayerList) then
-    local BuildersClub = ({ "rbxassetid://7038283888", "rbxassetid://7038284499", "rbxassetid://7038285281" });
-    local GetSize = function(X: number)
-        local Viewport = workspace.CurrentCamera.ViewportSize
-        return UDim2.new(0, X, 0, math.clamp(Viewport.Y / 2.5, 250, 416))
-    end
+    -- Info
+	local BuildersClub = ({ "rbxassetid://7038283888", "rbxassetid://7038284499", "rbxassetid://7038285281" });
+    local TeamFrames = ({});
+	local LeaderstatColumns = ({});
+    local PlayerUpdateFunctions = ({});
+	local TotalWidth = 170
 
-    local PlayerListContainer = Create("Frame", {
-        Name = "PlayerListContainer",
-        BackgroundTransparency = 1,
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 1, 5),
-        Parent = TopbarBackground,
-        Size = GetSize(170),
-    })
+	local GetSize = function(X: number)
+		local Viewport = workspace.CurrentCamera.ViewportSize
+		return UDim2.new(0, X, 0, Clamp(Viewport.Y / 2.5, 250, 416))
+	end
 
-    local ScrollList = Create("ScrollingFrame", {
-        Name = "ScrollList",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        ClipsDescendants = true,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        Parent = PlayerListContainer,
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-    })
-
-    Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        VerticalAlignment = Enum.VerticalAlignment.Top,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        Padding = UDim.new(0, 2),
-        Parent = ScrollList,
-    })
-
+    -- Connections
     Connect(RunService.RenderStepped, function()
-        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false);
-        pcall(function() -- would just disable the coregui for health but then the health change effect wont happen (the red stuff around the screen)
-            TopBarApp.UnibarLeftFrame.HealthBar.HealthBar.Visible = false
-        end)
-    end)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false);
+		pcall(function()
+			TopBarApp.UnibarLeftFrame.HealthBar.HealthBar.Visible = false
+		end)
+	end)
 
-    local AddPlayer = function(Player)
-        local Open = false
-        local PlayerObject = Create("TextButton", {
-            Parent = ScrollList,
-            Name = Player.Name,
-            BackgroundColor3 = Color3.fromRGB(31, 31, 31),
-            BackgroundTransparency = 0.500,
-            BorderSizePixel = 0,
-            Size = UDim2.new(0, 170, 0, 24),
-            AutoButtonColor = false,
-            TextSize = 14,
-            Font = Enum.Font.SourceSans,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            Text = Player.Name,
+    -- Objects
+	local PlayerListContainer = Create("Frame", {
+		Name = "PlayerListContainer",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 1, 5),
+		Parent = TopbarBackground,
+		Size = GetSize(170),
+	})
+
+	local ScrollList = Create("ScrollingFrame", {
+		Name = "ScrollList",
+		Size = UDim2.new(1, 0, 1, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		ClipsDescendants = true,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 0,
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		Parent = PlayerListContainer,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+	})
+
+	Create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Top,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		Padding = UDim.new(0, 2),
+		Parent = ScrollList,
+	})
+
+	local UpdateLeaderstats = function()
+		LeaderstatColumns = ({});
+		local Stats = LocalPlayer:FindFirstChild("leaderstats");
+
+		if (Stats) then
+			for _, Stat in next, Stats:GetChildren() do
+				if (Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue")) then
+					Insert(LeaderstatColumns, Stat.Name);
+				end
+			end
+		end
+
+		TotalWidth = 170 + (#LeaderstatColumns * 60);
+		PlayerListContainer.Size = GetSize(TotalWidth);
+
+		for _, Data in next, TeamFrames do
+            local HeaderIgnorePaddingFrame = Data.Header:FindFirstChild("HeaderIgnorePaddingFrame");
+			Data.Header.Size = UDim2.new(0, TotalWidth, 0, 20);
+
+			if (HeaderIgnorePaddingFrame) then
+				for _, Child in next, HeaderIgnorePaddingFrame:GetChildren() do
+					if (Child:IsA("TextLabel")) then
+						Destroy(Child);
+					end
+				end
+			end
+		end
+	end
+
+	local CreateTeamFrame = function(Team)
+		local TeamKey = (Team or "Neutral");
+		local TeamStatLabels = ({});
+        local TeamFrameKey = TeamFrames[TeamKey]
+
+		if (TeamFrameKey) then
+			return (TeamFrameKey);
+		end
+
+		local TeamFrame = Create("Frame", {
+			Parent = ScrollList,
+			Name = (Team and Team.Name) or "Neutral",
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, 0),
+			LayoutOrder = (Team == nil and 999) or 0,
+			AutomaticSize = Enum.AutomaticSize.Y,
+		})
+
+		local TeamHeader = Create("TextButton", {
+			Parent = TeamFrame,
+			Name = "TeamHeader",
+			BackgroundColor3 = Team and Team.TeamColor.Color or Color3.fromRGB(75, 75, 75),
+			BackgroundTransparency = 0.500,
+			BorderSizePixel = 0,
+			Size = UDim2.new(0, TotalWidth, 0, 20),
+			AutoButtonColor = false,
+			TextSize = 14,
+			Font = Enum.Font.SourceSansBold,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Position = UDim2.fromScale(1, 0),
+			AnchorPoint = Vector2.new(1, 0),
+			Text = (Team and Team.Name) or "Neutral",
+		})
+
+		Create("UIPadding", {
+			Parent = TeamHeader,
+			PaddingLeft = UDim.new(0, 5),
+		})
+
+		local HeaderIgnorePaddingFrame = Create("Frame", {
+			Parent = TeamHeader,
+			Name = "HeaderIgnorePaddingFrame",
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 1, 0),
+		})
+
+		local PlayerContainer = Create("Frame", {
+			Parent = TeamFrame,
+			Name = "PlayerContainer",
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.fromOffset(0, 21),
+			AutomaticSize = Enum.AutomaticSize.Y,
+		})
+
+		Create("UIListLayout", {
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			Padding = UDim.new(0, 2),
+			Parent = PlayerContainer,
+		})
+
+		local UpdateTeamStats = function()
+			for _, Label in next, TeamStatLabels do
+				Destroy(Label);
+			end
+
+            TeamStatLabels = ({});
+			for Index, StatName in next, LeaderstatColumns do
+				local TotalValue = 0
+                local IntValue = true
+
+				for _, PlayerObject in next, PlayerContainer:GetChildren() do
+					if (PlayerObject:IsA("TextButton")) then
+						local Player = Players:FindFirstChild(PlayerObject.Name);
+
+						if (Player) then
+							local Stats = Player:FindFirstChild("leaderstats");
+
+							if (Stats) then
+								local Stat = Stats:FindFirstChild(StatName);
+
+								if (Stat) then
+                                    if (Stat:IsA("NumberValue")) then
+                                        IntValue = false
+                                    end
+
+									TotalValue = TotalValue + (tonumber(Stat.Value) or 0);
+								end
+							end
+						end
+					end
+				end
+
+				local StatLabel = Create("TextLabel", {
+					Parent = HeaderIgnorePaddingFrame,
+					Name = StatName .. "Total",
+					BackgroundTransparency = 1,
+					Position = UDim2.new(0, 170 + ((Index - 1) * 60) - 5, 0, 0),
+					Size = UDim2.new(0, 60, 1, 0),
+					TextSize = 14,
+					Font = Enum.Font.SourceSansBold,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					Text = FormatNumber(TotalValue),
+				})
+
+				Insert(TeamStatLabels, StatLabel);
+			end
+		end
+
+		UpdateTeamStats();
+		TeamFrames[TeamKey] = ({ 
+            Frame = TeamFrame, 
+            Container = PlayerContainer, 
+            Header = TeamHeader, 
+            UpdateTeamStats = UpdateTeamStats
         })
 
-        local IgnorePaddingFrame = Create("Frame", {
-            Parent = PlayerObject,
-            Name = "IgnorePaddingFrame",
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-        })
+		return TeamFrames[TeamKey]
+	end
 
-        local Icon = Create("ImageLabel", {
-            Parent = IgnorePaddingFrame,
-            Name = "Icon",
-            BackgroundTransparency = 1.000,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0, -19, 0.02, 4),
-            Size = UDim2.new(0, 16, 0, 16),
-        })
-
-        Spawn(function()
-            if (Player:IsFriendsWith(LocalPlayer.UserId)) then
-                Icon.Image = "rbxasset://textures/ui/icon_friends_16.png"
-            elseif (Player.UserId == game.CreatorId) then
-                Icon.Image = "rbxasset://textures/ui/icon_placeowner.png"
-            elseif (Player.MembershipType == Enum.MembershipType.Premium) then
-                Icon.Image = BuildersClub[Random(1, #BuildersClub)]
-            end
-        end)
-
-        Create("UIPadding", {
-            Parent = PlayerObject,
-            PaddingLeft = UDim.new(0, 23),
-        })
-
-        Connect(PlayerObject.MouseButton1Click, function()
-            if (not Open) then
-                local Descendants = ScrollList:GetDescendants();
-
-                for _, User in next, Descendants do
-                    if (User.Name == "PlayerControlsHolder") then
-                        Destroy(User);
-                    end
-                end
-
-                for _, User in next, Descendants do
-                    if (User:IsA("TextButton")) then
-                        User.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
-                    end
-                end
-
-                local PlayerControlsHolder = Create("Frame", {
-                    Parent = PlayerObject,
-                    Name = "PlayerControlsHolder",
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Position = UDim2.new(-1, -25, 0, 0),
-                    Visible = true,
-                })
-
-                local FriendButton = Create("TextButton", {
-                    Parent = PlayerControlsHolder,
-                    BackgroundColor3 = Color3.fromRGB(31, 31, 31),
-                    BackgroundTransparency = 0.500,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(0, 170, 0, 24),
-                    AutoButtonColor = true,
-                    TextSize = 14,
-                    Font = Enum.Font.SourceSans,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
-                    Text = "Send a friend request",
-                })
-
-                local ReportButton = Create("TextButton", {
-                    Parent = PlayerControlsHolder,
-                    BackgroundColor3 = Color3.fromRGB(31, 31, 31),
-                    BackgroundTransparency = 0.500,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(0, 170, 0, 24),
-                    AutoButtonColor = true,
-                    TextSize = 14,
-                    Font = Enum.Font.SourceSans,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
-                    Text = "Report abuse",
-                })
-
-                Create("UIListLayout", {
-                    Parent = PlayerControlsHolder,
-                    SortOrder = Enum.SortOrder.LayoutOrder,
-                    VerticalAlignment = Enum.VerticalAlignment.Top,
-                    HorizontalAlignment = Enum.HorizontalAlignment.Right,
-                    Padding = UDim.new(0, 2),
-                })
+    local UpdatePlayerOrder = function(Player)
+        local TeamKey = (Player.Team or "Neutral");
+        local TeamData = TeamFrames[TeamKey]
+        
+        if (not TeamData) then
+            return
+        end
+        
+        for _, PlayerObject in next, TeamData.Container:GetChildren() do
+            if (PlayerObject:IsA("TextButton") and Players:FindFirstChild(PlayerObject.Name)) then
+                local TargetPlayer = Players:FindFirstChild(PlayerObject.Name);
+                local LayoutOrder = 0
                 
-                Create("UIPadding", {
-                    Parent = FriendButton,
-                    PaddingLeft = UDim.new(0, 36),
-                })
-
-                Create("UIPadding", {
-                    Parent = ReportButton,
-                    PaddingLeft = UDim.new(0, 36),
-                })
-
-                PlayerObject.BackgroundColor3 = Color3.fromRGB(0, 255, 255)                
-                Connect(FriendButton.MouseButton1Click, function()
-                    local PlayerControlsHolder = PlayerObject:FindFirstChild("PlayerControlsHolder");
-                    LocalPlayer:RequestFriendship(Player);
-
-                    if (PlayerControlsHolder) then
-                        Destroy(PlayerControlsHolder);
-                        PlayerObject.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
+                if (#LeaderstatColumns > 0) then
+                    local Stats = TargetPlayer:FindFirstChild("leaderstats");
+                    local FirstStat = Stats and Stats:FindFirstChild(LeaderstatColumns[1]);
+                    
+                    if (FirstStat and (FirstStat:IsA("IntValue") or FirstStat:IsA("NumberValue"))) then
+                        LayoutOrder = -tonumber(FirstStat.Value) or 0
                     end
+                end
+                
+                PlayerObject.LayoutOrder = LayoutOrder
+            end
+        end
+    end
 
-                    Open = false
-                end)
-            else
-                local PlayerControlsHolder = PlayerObject:FindFirstChild("PlayerControlsHolder");
-                PlayerObject.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
+	local AddPlayer = function(Player)
+		local Open = false
+		local CurrentTeamKey = nil
+		local PlayerObject
 
-                if (PlayerControlsHolder) then
-                    Destroy(PlayerControlsHolder);
+		local UpdatePlayerTeam = function()
+			local TeamKey = (Player.Team or "Neutral");
+            local TeamFrame = TeamFrames[CurrentTeamKey]
+
+			if (CurrentTeamKey == TeamKey) then
+				return
+			end
+
+			if (CurrentTeamKey and TeamFrame and TeamFrame.UpdateTeamStats) then
+				TeamFrame.UpdateTeamStats();
+			end
+
+			CurrentTeamKey = TeamKey
+            
+			local TeamData = CreateTeamFrame(TeamKey)
+			PlayerObject.Parent = TeamData.Container
+
+			if (TeamData and TeamData.UpdateTeamStats) then
+				TeamData.UpdateTeamStats();
+			end
+		end
+
+		local TeamKey = (Player.Team or "Neutral");
+		local TeamData = CreateTeamFrame(TeamKey)
+
+        CurrentTeamKey = TeamKey
+		PlayerObject = Create("TextButton", {
+			Parent = TeamData.Container,
+			Name = Player.Name,
+			BackgroundColor3 = Color3.fromRGB(31, 31, 31),
+			BackgroundTransparency = 0.500,
+			BorderSizePixel = 0,
+			Size = UDim2.new(0, TotalWidth, 0, 24),
+			AutoButtonColor = false,
+			TextSize = 14,
+			Font = Enum.Font.SourceSans,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Text = Player.Name,
+		})
+
+		local IgnorePaddingFrame = Create("Frame", {
+			Parent = PlayerObject,
+			Name = "IgnorePaddingFrame",
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 1, 0),
+		})
+
+		local Icon = Create("ImageLabel", {
+			Parent = IgnorePaddingFrame,
+			Name = "Icon",
+			BackgroundTransparency = 1.000,
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, -19, 0.02, 4),
+			Size = UDim2.new(0, 16, 0, 16),
+		})
+
+		Spawn(function()
+			if (Player:IsFriendsWith(LocalPlayer.UserId)) then
+				Icon.Image = "rbxasset://textures/ui/icon_friends_16.png"
+			elseif (Player.UserId == game.CreatorId) then
+				Icon.Image = "rbxasset://textures/ui/icon_placeowner.png"
+			elseif (Player.MembershipType == Enum.MembershipType.Premium) then
+				Icon.Image = BuildersClub[Random(1, #BuildersClub)]
+			end
+		end)
+
+		Create("UIPadding", {
+			Parent = PlayerObject,
+			PaddingLeft = UDim.new(0, 23),
+		})
+
+		local StatLabels = {}
+		local UpdateStats = function()
+			for _, Label in next, StatLabels do
+				Destroy(Label);
+			end
+
+            StatLabels = ({});
+
+			local Stats = Player:FindFirstChild("leaderstats");
+
+			if (Stats) then
+				for Index, StatName in next, LeaderstatColumns do
+					local Stat = Stats:FindFirstChild(StatName);
+
+					if (Stat) then
+						local StatLabel = Create("TextLabel", {
+                            Parent = IgnorePaddingFrame,
+                            Name = StatName,
+                            BackgroundTransparency = 1,
+                            Position = UDim2.new(0, 170 + ((Index - 1) * 60) - 23, 0, 0),
+                            Size = UDim2.new(0, 60, 1, 0),
+                            TextSize = 14,
+                            Font = Enum.Font.SourceSans,
+                            TextXAlignment = Enum.TextXAlignment.Center,
+                            TextColor3 = Color3.fromRGB(255, 255, 255),
+                            Text = FormatNumber(Stat.Value),
+                        })
+
+						Insert(StatLabels, StatLabel)
+						Connect(Stat.Changed, function(Value)
+                            StatLabel.Text = FormatNumber(Stat.Value);
+                            
+                            local TeamKey = (Player.Team or "Neutral");
+                            local TeamFrame = TeamFrames[TeamKey]
+                            
+                            if (TeamFrame and TeamFrame.UpdateTeamStats) then
+                                TeamFrame.UpdateTeamStats();
+                            end
+                            
+                            if (Index == 1) then
+                                UpdatePlayerOrder(Player);
+                            end
+                        end)
+					end
+				end
+			end
+
+			local TeamKey = (Player.Team or "Neutral");
+            local TeamFrame = TeamFrames[TeamKey]
+            
+			if (TeamFrame and TeamFrame.UpdateTeamStats) then
+				TeamFrame.UpdateTeamStats();
+			end
+
+            UpdatePlayerOrder(Player);
+		end
+
+		UpdateStats();
+		PlayerUpdateFunctions[Player] = UpdateStats
+
+        Connect(Player.ChildAdded, function(Child)
+            if (Child.Name == "leaderstats") then
+                Wait(0.1); UpdateStats()
+            end
+        end)
+
+		Connect(Player:GetPropertyChangedSignal("Team"), UpdatePlayerTeam)
+		Connect(PlayerObject.MouseButton1Click, function()
+			if (not Open) then
+				local Descendants = ScrollList:GetDescendants();
+
+				for _, User in next, Descendants do
+					if (User.Name == "PlayerControlsHolder") then
+						Destroy(User);
+					end
+				end
+
+				for _, User in next, Descendants do
+					if (User:IsA("TextButton") and User.Name ~= "TeamHeader") then
+						User.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
+					end
+				end
+
+				local PlayerControlsHolder = Create("Frame", {
+					Parent = PlayerObject,
+					Name = "PlayerControlsHolder",
+					BackgroundTransparency = 1,
+					Size = UDim2.new(1, 0, 1, 0),
+					Position = UDim2.new(-1, -25, 0, 0),
+					Visible = true,
+				})
+
+				local FriendButton = Create("TextButton", {
+					Parent = PlayerControlsHolder,
+					BackgroundColor3 = Color3.fromRGB(31, 31, 31),
+					BackgroundTransparency = 0.500,
+					BorderSizePixel = 0,
+					Size = UDim2.new(0, 157, 0, 24),
+					AutoButtonColor = true,
+					TextSize = 14,
+					Font = Enum.Font.SourceSans,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					Text = "Send a friend request",
+				})
+
+				local ReportButton = Create("TextButton", {
+					Parent = PlayerControlsHolder,
+					BackgroundColor3 = Color3.fromRGB(31, 31, 31),
+					BackgroundTransparency = 0.500,
+					BorderSizePixel = 0,
+					Size = UDim2.new(0, 157, 0, 24),
+					AutoButtonColor = true,
+					TextSize = 14,
+					Font = Enum.Font.SourceSans,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					Text = "Report abuse",
+				})
+
+				Create("UIListLayout", {
+					Parent = PlayerControlsHolder,
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					VerticalAlignment = Enum.VerticalAlignment.Top,
+					HorizontalAlignment = Enum.HorizontalAlignment.Right,
+					Padding = UDim.new(0, 2),
+				})
+
+				Create("UIPadding", {
+					Parent = FriendButton,
+					PaddingLeft = UDim.new(0, 36),
+				})
+
+				Create("UIPadding", {
+					Parent = ReportButton,
+					PaddingLeft = UDim.new(0, 36),
+				})
+
+				PlayerObject.BackgroundColor3 = Color3.fromRGB(0, 255, 255)                
+				Connect(FriendButton.MouseButton1Click, function()
+					local PlayerControlsHolder = PlayerObject:FindFirstChild("PlayerControlsHolder");
+					LocalPlayer:RequestFriendship(Player);
+
+					if (PlayerControlsHolder) then
+						Destroy(PlayerControlsHolder);
+						PlayerObject.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
+					end
+
+					Open = false
+				end)
+			else
+				local PlayerControlsHolder = PlayerObject:FindFirstChild("PlayerControlsHolder");
+				PlayerObject.BackgroundColor3 = Color3.fromRGB(31, 31, 31);
+
+				if (PlayerControlsHolder) then
+					Destroy(PlayerControlsHolder);
+				end
+			end
+
+			Open = (not Open);
+			PlayerListContainer.Size = GetSize((Open and (TotalWidth + 157)) or TotalWidth);
+		end)
+
+		Defer(function()
+			local TeamKey = (Player.Team or "Neutral");
+            local TeamFrame = TeamFrames[TeamKey]
+
+			if (TeamFrame and TeamFrame.UpdateTeamStats) then
+				TeamFrame.UpdateTeamStats();
+			end
+		end)
+	end
+
+	UpdateLeaderstats();
+
+	for _, Team in next, Teams:GetTeams() do
+		CreateTeamFrame(Team);
+	end
+
+	CreateTeamFrame(nil);
+
+	for _, Player in next, Players:GetPlayers() do
+		AddPlayer(Player);
+	end
+
+    -- Connections
+	Connect(Players.PlayerAdded, function(Player)
+		AddPlayer(Player);
+	end)
+
+	Connect(Players.PlayerRemoving, function(Player)
+        PlayerUpdateFunctions[Player] = nil
+        
+        for _, Data in next, TeamFrames do
+            for _, User in next, Data.Container:GetChildren() do
+                if (User.Name == Player.Name) then
+                    Destroy(User);
                 end
             end
-
-            Open = (not Open);
-            PlayerListContainer.Size = GetSize((Open and 327) or 170);
-        end)
-    end
-
-    for _, Player in next, Players:GetPlayers() do
-        AddPlayer(Player);
-    end
-
-    Connect(Players.PlayerAdded, function(Player)
-        AddPlayer(Player);
-    end)
-
-    Connect(Players.PlayerRemoving, function(Player)
-        for _, User in next, ScrollList:GetChildren() do
-            if (User.Name == Player.Name) then
-                Destroy(User);
-            end
         end
     end)
 
-    Connect(UserInputService.InputBegan, function(Input, Processed)
-        if (Input.KeyCode == Enum.KeyCode.Tab) then
-            PlayerListContainer.Visible = (not PlayerListContainer.Visible);
+	Connect(Teams.ChildAdded, function(Team)
+        CreateTeamFrame(Team);
+    end)
+
+	Connect(Teams.ChildRemoved, function(Team)
+        local TeamFrame = TeamFrames[Team]
+        
+        if (TeamFrame) then
+            Destroy(TeamFrame.Frame);
+            TeamFrames[Team] = nil
         end
     end)
 
-    if (AccountInfo) then
-        Connect(AccountInfo.MouseButton1Click, function()
-            PlayerListContainer.Visible = (not PlayerListContainer.Visible);
-        end)
-    end
+	Connect(LocalPlayer.ChildAdded, function(Child)
+		if (Child.Name == "leaderstats") then
+			Wait(0.1); UpdateLeaderstats()
+
+			for _, Data in next, TeamFrames do
+				for _, PlayerObject in next, Data.Container:GetChildren() do
+					if (PlayerObject:IsA("TextButton")) then
+						PlayerObject.Size = UDim2.new(0, TotalWidth, 0, 24)
+					end
+				end
+			end
+
+			for Player, Update in next, PlayerUpdateFunctions do
+				Update();
+			end
+
+            Connect(Child.ChildAdded, function(Stat)
+                if (Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue")) then
+                    Wait(0.1); UpdateLeaderstats();
+
+                    for _, Data in next, TeamFrames do
+                        for _, PlayerObject in next, Data.Container:GetChildren() do
+                            if (PlayerObject:IsA("TextButton")) then
+                                PlayerObject.Size = UDim2.new(0, TotalWidth, 0, 24);
+                            end
+                        end
+                    end
+
+                    for Player, Update in next, PlayerUpdateFunctions do
+                        Update();
+                    end
+                end
+            end)
+		end
+	end)
+
+	Connect(UserInputService.InputBegan, function(Input, Processed)
+		if (Input.KeyCode == Enum.KeyCode.Tab) then
+			PlayerListContainer.Visible = (not PlayerListContainer.Visible);
+		end
+	end)
+
+	if (AccountInfo) then
+		Connect(AccountInfo.MouseButton1Click, function()
+			PlayerListContainer.Visible = (not PlayerListContainer.Visible);
+		end)
+	end
 end
