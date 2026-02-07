@@ -143,20 +143,24 @@ local CreateBackpack = function()
 end
 
 local FormatNumber = function(Value)
-    Value = Floor(Value);
+    if (typeof(Value) == "number") then
+        Value = Floor(Value);
 
-	if (Value >= 1000000000000) then
-		return string.format("%.1fT+", Value / 1000000000000);
-	elseif (Value >= 1000000000) then
-		return string.format("%.1fB+", Value / 1000000000);
-	elseif (Value >= 1000000) then
-		return string.format("%.1fM+", Value / 1000000);
-	elseif (Value >= 1000) then
-		local Formatted = tostring(Value);
-		return Formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "");
-	else
-		return tostring(Value);
-	end
+        if (Value >= 1000000000000) then
+            return string.format("%.1fT+", Value / 1000000000000);
+        elseif (Value >= 1000000000) then
+            return string.format("%.1fB+", Value / 1000000000);
+        elseif (Value >= 1000000) then
+            return string.format("%.1fM+", Value / 1000000);
+        elseif (Value >= 1000) then
+            local Formatted = tostring(Value);
+            return Formatted:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "");
+        else
+            return tostring(Value);
+        end
+    else
+        return Value
+    end
 end
 
 local AddIconSystem = function(Button, Size, Clicked: () -> ())
