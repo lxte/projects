@@ -325,13 +325,17 @@ local SetupChat = function()
 				local Player = UserId and Players:GetPlayerByUserId(UserId);
 
 				if (UserId and Player) then
-					local AgeGroupDifference = Find(BodyText.Text, "🔒 :")
-					local Prefix = (`<font color="{GetPlayerColor(Player.Name)}">[{Player.Name}]:</font>`);
-					local ToReplace = (AgeGroupDifference and "🔒 :") or `{Player.DisplayName}:`
-					local Body = Replace(BodyText.Text, ToReplace, `[{Player.Name}]:`);
+					local AgeGroupDifference = Find(BodyText.Text, "🔒 :");
+					local TeamMessage = Find(PrefixText.Text, "%[Team%]");
+					local TeamPrefix = (TeamMessage and "[Team] " or "");
+					local ToReplace = ((AgeGroupDifference and "🔒 :") or `{Player.DisplayName}:`);
+
+					local Body = (`<font color="{GetPlayerColor(Player.Name)}"><b>{TeamPrefix}[{Player.Name}]:</b></font> {Match(BodyText.Text, "</stroke></font>%s*(.*)$") or Match(BodyText.Text, ToReplace .. "%s*(.*)$") or ""}`);
+					local Prefix = (`<font color="{GetPlayerColor(Player.Name)}"><b>{TeamPrefix}[{Player.Name}]:</b></font>`);
 
 					PrefixText.Text = Prefix
 					BodyText.Text = Body
+					BodyText.TextColor3 = Color3.fromRGB(255, 255, 255);
 
 					Connect(Changed(PrefixText, "Text"), function()
 						PrefixText.Text = Prefix
@@ -344,7 +348,7 @@ local SetupChat = function()
 					if (AgeGroupDifference) then
 						BodyText.TextColor3 = Color3.fromRGB(250, 255, 158);
 					end
-				elseif (UserId == 0 and BodyText and Find(BodyText.Text, "Only people in similar age groups can chat with you") and Configuration.ReplaceAgeGroupMessage) then
+				elseif (UserId == 0 and BodyText and Find(BodyText.Text:lower(), "age group") and Configuration.ReplaceAgeGroupMessage) then
 					BodyText.Text = "Chat '/?' or '/help' for a list of chat commands."
 
 					Connect(Changed(BodyText, "Text"), function()
@@ -1095,11 +1099,11 @@ if (Configuration.OldPlayerList) then
 
 		Connect(Player.ChildAdded, function(Child)
 			if (Child.Name == "leaderstats") then
-				Wait(0.1); UpdateStats()
+				Wait(0.1); UpdateStats();
 			end
 		end)
 
-		Connect(Player:GetPropertyChangedSignal("Team"), UpdatePlayerTeam)
+		Connect(Changed(Player, "Team"), UpdatePlayerTeam);
 		Connect(PlayerObject.MouseButton1Click, function()
 			if (not Open) then
 				local Descendants = ScrollList:GetDescendants();
@@ -1250,7 +1254,7 @@ if (Configuration.OldPlayerList) then
 
 	Connect(LocalPlayer.ChildAdded, function(Child)
 		if (Child.Name == "leaderstats") then
-			Wait(0.1); UpdateLeaderstats()
+			Wait(0.1); UpdateLeaderstats();
 
 			for _, Data in next, TeamFrames do
 				for _, PlayerObject in next, Data.Container:GetChildren() do
