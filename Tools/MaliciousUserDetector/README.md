@@ -11,5 +11,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/projects/refs/he
 ```
 
 <div align="center">
-<img width="572" height="413" alt="preview" src="https://github.com/user-attachments/assets/21bbef95-9478-4339-ad7b-73fa9b1a7f41" />
+<img width="757" height="472" alt="image" src="https://github.com/user-attachments/assets/ff2362e7-22c1-4ee0-8f5d-b39ce9524d71" />
 </div>
