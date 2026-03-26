@@ -18,7 +18,7 @@ local Parent = (function()
 	local Success, Result = pcall(function()
 		return game:GetService("CoreGui")
 	end)
-	
+
 	if (not Success or not Result) then
 		Result = PlayerGui
 	end
@@ -31,7 +31,7 @@ local SetProperty = function(Object: Instance, Property: string, Value: any)
 	if (Value == nil) then
 		return
 	end
-	
+
 	Object[Property] = Value
 end
 
@@ -44,10 +44,10 @@ local Tween = function(Object: Instance, Info: { [string]: any }, Properties: { 
 			end)
 		end
 	end
-	
+
 	local Result = TweenService:Create(Object, TweenInfo.new(table.unpack(Info)), Properties)
 	Result:Play()
-	
+
 	return Result
 end
 
@@ -56,7 +56,7 @@ local MultiTween = function(Info: { [string]: any }, Properties: { [Instance]: {
 		local Success, Result = pcall(function()
 			return Tween(Object, Info, Properties)
 		end)
-		
+
 		if (not Success) then
 			return warn(Result, Object, Properties)
 		end
@@ -78,7 +78,7 @@ export type EditOptions = {
 	Mode: "Dark" | "Light" | nil,
 	VerticalPosition: "Top" | "Bottom" | nil,
 	HorizontalPosition: "Left" | "Right" | nil,	
-	
+
 	-- this shouldnt be updated
 	UI: typeof(script.Parent),
 	Order: number,
@@ -98,22 +98,22 @@ Notification.New = function(self: Self, Configuration: EditOptions)
 
 		return InsertService:LoadLocalAsset("rbxassetid://110156283814694")
 	end)()
-	
+
 	local Holder = Configuration.UI.Holder
-	
+
 	Holder.Position = UDim2.fromScale((Configuration.HorizontalPosition == "Left" and 0) or 1)
 	Holder.AnchorPoint = (Configuration.HorizontalPosition == "Left" and Vector2.zero) or Vector2.new(1, 0)
 	Holder.UIListLayout.VerticalAlignment = Enum.VerticalAlignment[Configuration.VerticalPosition or "Top"]
 	Holder.UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment[Configuration.HorizontalPosition]
 	Configuration.UI.IgnoreGuiInset = (Configuration.HorizontalPosition == "Right")
 	Configuration.UI.Parent = Parent
-	
+
 	return setmetatable(Configuration, Notification)
 end
 
 Notification.Create = function(self: typeof(Notification:New()), Configuration: Configuration)
 	self.Order -= 1
-	
+
 	-- Setup
 	local UI = self.UI
 	local Sizer = UI.Template:Clone()
@@ -123,19 +123,24 @@ Notification.Create = function(self: typeof(Notification:New()), Configuration: 
 		[Notification] = ({ BackgroundColor3 = self.BackgroundColor, Visible = false, ZIndex = -self.Order }),
 		[Notification.TextHolder.Title] = ({ TextColor3 = self.TitleColor, Text = Configuration.Title }),
 		[Notification.TextHolder.Description] = ({ TextColor3 = self.DescriptionColor, Text = Configuration.Description }),
-		[Notification.Icon] = ({ Image = self.Image }),
+		[Notification.Icon] = ({ Image = Configuration.Image, BackgroundColor3 = (self.Mode == "Light" and Color3.fromRGB()) or Color3.fromRGB(255, 255, 255) }),
 		[Notification.Light] = ({ Transparency = (self.Mode == "Light" and 0) or 0.7 })
 	})
-	
+
 	for Object, Properties in next, Properties do
 		for Property, Value in next, Properties do
 			SetProperty(Object, Property, Value)
 		end
 	end
-	
+
+	if (not Configuration.Image) then
+		Notification.Icon.Visible = false
+		Notification.TextHolder.Size = UDim2.new(1, -30, 1, 0)
+	end
+
 	local Destroyed = false
 	local OriginalSize = Notification.AbsoluteSize
-	
+
 	-- Functions
 	local Animate = function(Shown: boolean)
 		local Size = UDim2.fromOffset(OriginalSize.X, OriginalSize.Y)
@@ -168,14 +173,14 @@ Notification.Create = function(self: typeof(Notification:New()), Configuration: 
 			Sizer:Destroy()
 		end
 	end
-	
+
 	-- Rest
 	Notification.AutomaticSize = Enum.AutomaticSize.None
 	MultiTween({ 0, Enum.EasingStyle.Quint }, Animate(false)) task.wait()
 	MultiTween({ 0.75, Enum.EasingStyle.Quint }, Animate(true))
 	Notification.Visible = true
 	Notification.Ignore.Close.MouseButton1Click:Connect(Remove)
-	
+
 	task.delay(Configuration.Duration or 5, function()
 		Remove()
 	end)
