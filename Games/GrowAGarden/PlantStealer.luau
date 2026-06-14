@@ -61,7 +61,14 @@ local GetValuable = function()
     local Item = nil
 
     for _, Plot in next, Plots:GetChildren() do
-        if (Plot == GetPlot(LocalPlayer)) then
+        local Owner = Players:GetPlayerByUserId(Plot:GetAttribute("OwnerUserId") or LocalPlayer.UserId)
+        local Humanoid = Owner and GetHumanoid(Owner)
+
+        if (not Owner or Owner == LocalPlayer) then
+            continue
+        end
+
+        if (Humanoid and Humanoid.Sit) then
             continue
         end
 
@@ -84,7 +91,7 @@ local GetValuable = function()
                 local HarvestPart = Plant:FindFirstChild("HarvestPart")
                 local StealPrompt = HarvestPart and HarvestPart:FindFirstChild("StealPrompt")
 
-                if (not StealPrompt or Plant:GetAttribute("SeedName") == "Bamboo") then
+                if (not StealPrompt) then -- or Plant:GetAttribute("SeedName") == "Bamboo" || nvm they enabled bamboo stealing
                     continue
                 end
 
@@ -104,13 +111,16 @@ local GetValuable = function()
 end
 
 local Fling = function(Player)
+    -- improve the fling
 	local Flinging = true
     local Root = GetRoot(LocalPlayer)
     local Humanoid = GetHumanoid(LocalPlayer)
 	local OldPosition = Root.CFrame
-    
+
 	task.spawn(function()
 		local Movel = 0.1
+        local Velocity = Root.Velocity
+
 		repeat task.wait()
 			Velocity = Root.Velocity
 			Root.Velocity = Velocity * 10000 + Vector3.new(0, 10000, 0)
@@ -162,8 +172,12 @@ end
 
 local ReturnToPlot = function()
     for Index = 1, 10 do
-        GetRoot(LocalPlayer).CFrame = GetPlot(LocalPlayer).PlotSizeReference.CFrame
-        task.wait(0.05)
+        local Root = GetRoot(LocalPlayer)
+
+        if (Root) then
+            Root.CFrame = GetPlot(LocalPlayer).PlotSizeReference.CFrame        
+            task.wait(0.05)
+        end
     end
 end
 
@@ -191,10 +205,14 @@ local Steal = function(Fruit, Return)
         end
 
         for Index = 1, 2 do
-            GetRoot(LocalPlayer).CFrame = HarvestPart.CFrame
-            Networking.Steal.BeginSteal:Fire(UserId, PlantId, FruitId or "")
-            Networking.Steal.CompleteSteal:Fire()
-            task.wait(0.05)
+            local Root = GetRoot(LocalPlayer)
+
+            if (Root) then
+                Root.CFrame = HarvestPart.CFrame
+                Networking.Steal.BeginSteal:Fire(UserId, PlantId, FruitId or "")
+                Networking.Steal.CompleteSteal:Fire()
+                task.wait(0.05)
+            end
         end
 
         if (Return) then
@@ -206,6 +224,7 @@ end
 -- Setup
 local Mode = "None"
 
+-- this is just for testing because click to steal is pretty useless
 if (Mode == "Click") then
     local Old = getgenv().MouseConnection
     local Mouse = LocalPlayer:GetMouse()
